@@ -22,7 +22,7 @@ Cellpose was written by Carsen Stringer and Marius Pachitariu. To learn about Ce
 
 Please see install instructions [below](README.md/#Installation), and also check out the detailed documentation at [**cellpose.readthedocs.io**](https://cellpose.readthedocs.io/en/latest/) for more information.
 
-This is a new version.
+This is a version 4.0.
 
 ### :star2: v3 (Feb 2024) :star2:
 
