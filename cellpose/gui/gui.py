@@ -6,7 +6,7 @@ import sys, os, pathlib, warnings, datetime, time, copy
 
 from qtpy import QtGui, QtCore
 from superqt import QRangeSlider, QCollapsible
-from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox
+from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
 import pyqtgraph as pg
 
 import numpy as np
@@ -305,6 +305,38 @@ class MainW(QMainWindow):
         self.win.show()
         self.show()
 
+    def open_color_dialog(self):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.update_color_levels(color)
+
+    def update_color_levels(self, color):
+        # Convert the QColor to RGB values
+        r, g, b, _ = color.getRgb()
+
+        # Update the color variable
+        self.selected_color = [r, g, b]
+
+        self.sliders[1].setValue([0, g])
+        self.saturation[1][self.currentZ] = [0, g]
+
+        if not self.autobtn.isChecked():
+            for r in range(3):
+                for i in range(len(self.saturation[r])):
+                    self.saturation[r][i] = self.saturation[r][self.currentZ]
+        self.update_plot()
+
+    def level_change(self, r):
+        r = ["red", "green", "blue"].index(r)
+        if self.loaded:
+            sval = self.sliders[r].value()
+            self.saturation[r][self.currentZ] = sval
+            if not self.autobtn.isChecked():
+                for r in range(3):
+                    for i in range(len(self.saturation[r])):
+                        self.saturation[r][i] = self.saturation[r][self.currentZ]
+            self.update_plot()
+
     def help_window(self):
         HW = guiparts.HelpWindow(self)
         HW.show()
@@ -395,6 +427,15 @@ class MainW(QMainWindow):
             )
             #self.sliders[-1].setTickPosition(QSlider.TicksRight)
             self.satBoxG.addWidget(self.sliders[-1], b0, 2, 1, 7)
+
+            # Add the button for the color palette under the last slider
+            self.colorButton = QPushButton("Choose Color", self)
+            self.colorButton.setFont(self.medfont)
+            self.colorButton.clicked.connect(self.open_color_dialog)
+            self.satBoxG.addWidget(self.colorButton, 8, 2, 1, 7)
+
+            # Initialize the color variable
+            self.selected_color = [255, 0, 0]  # Default color set to red
 
         b += 1
         self.drawBox = QGroupBox("Drawing")
@@ -1599,25 +1640,10 @@ class MainW(QMainWindow):
         self.view = self.ViewDropDown.currentIndex()
         self.Ly, self.Lx, _ = self.stack[self.currentZ].shape
 
-        if self.restore and "upsample" in self.restore:
-            if self.view != 0:
-                if self.view == 3:
-                    self.resize = True
-                elif len(self.flows[0]) > 0 and self.flows[0].shape[1] == self.Lyr:
-                    self.resize = True
-                else:
-                    self.resize = False
-            else:
-                self.resize = False
-            self.draw_layer()
-            self.update_scale()
-            self.update_layer()
-
         if self.view == 0 or self.view == self.ViewDropDown.count() - 1:
             image = self.stack[
                 self.currentZ] if self.view == 0 else self.stack_filtered[self.currentZ]
             if self.nchan == 1:
-                # show single channel
                 image = image[..., 0]
             if self.color == 0:
                 self.img.setImage(image, autoLevels=False, lut=None)
@@ -1657,7 +1683,6 @@ class MainW(QMainWindow):
             else:
                 self.img.setImage(image, autoLevels=False, lut=None)
             self.img.setLevels([0.0, 255.0])
-
         for r in range(3):
             self.sliders[r].setValue([
                 self.saturation[r][self.currentZ][0],
@@ -1665,6 +1690,57 @@ class MainW(QMainWindow):
             ])
         self.win.show()
         self.show()
+
+    def draw_mask(self, z, ar, ac, vr, vc, color, idx=None):
+        """ draw single mask using outlines and area """
+        if idx is None:
+            idx = self.ncells + 1
+        self.cellpix[z, vr, vc] = idx
+        self.cellpix[z, ar, ac] = idx
+        self.outpix[z, vr, vc] = idx
+        if self.restore and "upsample" in self.restore:
+            if self.resize:
+                self.cellpix_resize[z, vr, vc] = idx
+                self.cellpix_resize[z, ar, ac] = idx
+                self.outpix_resize[z, vr, vc] = idx
+                self.cellpix_orig[z, (vr / self.ratio).astype(int),
+                (vc / self.ratio).astype(int)] = idx
+                self.cellpix_orig[z, (ar / self.ratio).astype(int),
+                (ac / self.ratio).astype(int)] = idx
+                self.outpix_orig[z, (vr / self.ratio).astype(int),
+                (vc / self.ratio).astype(int)] = idx
+            else:
+                self.cellpix_orig[z, vr, vc] = idx
+                self.cellpix_orig[z, ar, ac] = idx
+                self.outpix_orig[z, vr, vc] = idx
+
+                # get upsampled mask
+                vrr = (vr.copy() * self.ratio).astype(int)
+                vcr = (vc.copy() * self.ratio).astype(int)
+                mask = np.zeros((np.ptp(vrr) + 4, np.ptp(vcr) + 4), np.uint8)
+                pts = np.stack((vcr - vcr.min() + 2, vrr - vrr.min() + 2),
+                               axis=-1)[:, np.newaxis, :]
+                mask = cv2.fillPoly(mask, [pts], (255, 0, 0))
+                arr, acr = np.nonzero(mask)
+                arr, acr = arr + vrr.min() - 2, acr + vcr.min() - 2
+                # get dense outline
+                contours = cv2.findContours(mask, cv2.RETR_EXTERNAL,
+                                            cv2.CHAIN_APPROX_NONE)
+                pvc, pvr = contours[-2][0].squeeze().T
+                vrr, vcr = pvr + vrr.min() - 2, pvc + vcr.min() - 2
+                # concatenate all points
+                arr, acr = np.hstack((np.vstack((vrr, vcr)), np.vstack((arr, acr))))
+                self.cellpix_resize[z, vrr, vcr] = idx
+                self.cellpix_resize[z, arr, acr] = idx
+                self.outpix_resize[z, vrr, vcr] = idx
+
+        if z == self.currentZ:
+            self.layerz[ar, ac, :3] = self.selected_color  # Use the selected color
+            if self.masksOn:
+                self.layerz[ar, ac, -1] = self.opacity
+            if self.outlinesOn:
+                self.layerz[vr, vc] = np.array(self.outcolor)
+
 
     def update_layer(self):
         if self.masksOn or self.outlinesOn:
