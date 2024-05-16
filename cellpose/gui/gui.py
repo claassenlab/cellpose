@@ -298,6 +298,9 @@ class MainW(QMainWindow):
             "model_name": "CP" + d.strftime("_%Y%m%d_%H%M%S"),
         }
 
+        b = self.make_buttons()
+        self.lmain.addWidget(self.scrollarea, 0, 0, 39, 9)
+
         self.load_3D = False
         self.stitch_threshold = 0.
 
@@ -393,8 +396,13 @@ class MainW(QMainWindow):
             self.sliders[-1].setToolTip(
                 "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
             )
-            #self.sliders[-1].setTickPosition(QSlider.TicksRight)
             self.satBoxG.addWidget(self.sliders[-1], b0, 2, 1, 7)
+
+        b0 += 1
+        self.colorButton = QPushButton("Choose Color")
+        self.colorButton.setFont(self.medfont)
+        self.colorButton.clicked.connect(self.choose_color)
+        self.satBoxG.addWidget(self.colorButton, b0, 0, 1, 9)
 
         b += 1
         self.drawBox = QGroupBox("Drawing")
@@ -848,6 +856,15 @@ class MainW(QMainWindow):
         self.l0.addWidget(self.ScaleOn, b, 0, 1, 5)
 
         return b
+
+    def choose_color(self):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            rgb = color.getRgb()
+            self.sliders[0].setValue([0, rgb[0]])
+            self.sliders[1].setValue([0, rgb[1]])
+            self.sliders[2].setValue([0, rgb[2]])
+            self.update_plot()
 
     def level_change(self, r):
         r = ["red", "green", "blue"].index(r)
