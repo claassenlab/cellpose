@@ -396,14 +396,13 @@ class MainW(QMainWindow):
             self.sliders[-1].setToolTip(
                 "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
             )
-            self.satBoxG.addWidget(self.sliders[-1], b0, 2, 1, 7)
+            self.satBoxG.addWidget(self.sliders[-1], b0, 2, 1, 5)
 
-        # Add "Choose Color" button below the third slider
-        b0 += 1
-        self.colorButton = QPushButton("Choose Color")
-        self.colorButton.setFont(self.medfont)
-        self.colorButton.clicked.connect(self.choose_color)
-        self.satBoxG.addWidget(self.colorButton, b0, 0, 1, 9)
+            # Add individual "Choose Color" button for each slider
+            color_button = QPushButton("Choose Color")
+            color_button.setFont(self.medfont)
+            color_button.clicked.connect(lambda _, idx=r: self.choose_slider_color(idx))
+            self.satBoxG.addWidget(color_button, b0, 7, 1, 2)
 
         b += 1
         self.drawBox = QGroupBox("Drawing")
@@ -858,6 +857,24 @@ class MainW(QMainWindow):
 
         return b
 
+    def choose_slider_color(self, slider_index):
+        """
+        Opens a QColorDialog to allow the user to choose a color for a specific slider.
+        The selected color is then used to update the value of the corresponding color slider.
+
+        Args:
+            slider_index (int): Index of the slider to update
+
+        Returns:
+            None
+        """
+        color = QColorDialog.getColor()
+        if color.isValid():
+            rgb = color.getRgb()
+            self.sliders[slider_index].setValue([0, rgb[slider_index]])
+            self.update_plot()
+
+    # CHOOSE_COLOR IST UNNÖTIG FALLS ANDERE LÖSUNG RICHTI
     def choose_color(self):
         """
         Opens a QColorDialog to allow the user to choose a color.
