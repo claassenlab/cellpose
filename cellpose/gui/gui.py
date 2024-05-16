@@ -398,6 +398,7 @@ class MainW(QMainWindow):
             )
             self.satBoxG.addWidget(self.sliders[-1], b0, 2, 1, 7)
 
+        # Add "Choose Color" button below the third slider
         b0 += 1
         self.colorButton = QPushButton("Choose Color")
         self.colorButton.setFont(self.medfont)
@@ -858,6 +859,17 @@ class MainW(QMainWindow):
         return b
 
     def choose_color(self):
+        """
+        Opens a QColorDialog to allow the user to choose a color.
+        The selected color is then used to update the values of the three color sliders.
+
+        The QColorDialog provides a standard dialog that allows the user to select a color.
+        The selected color's RGB values are extracted and used to set the values of the red, green,
+        and blue sliders.
+
+        Returns:
+            None
+        """
         color = QColorDialog.getColor()
         if color.isValid():
             rgb = color.getRgb()
