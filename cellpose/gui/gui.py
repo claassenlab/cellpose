@@ -874,27 +874,6 @@ class MainW(QMainWindow):
             self.sliders[slider_index].setValue([0, rgb[slider_index]])
             self.update_plot()
 
-    # CHOOSE_COLOR IST UNNÖTIG FALLS ANDERE LÖSUNG RICHTI
-    def choose_color(self):
-        """
-        Opens a QColorDialog to allow the user to choose a color.
-        The selected color is then used to update the values of the three color sliders.
-
-        The QColorDialog provides a standard dialog that allows the user to select a color.
-        The selected color's RGB values are extracted and used to set the values of the red, green,
-        and blue sliders.
-
-        Returns:
-            None
-        """
-        color = QColorDialog.getColor()
-        if color.isValid():
-            rgb = color.getRgb()
-            self.sliders[0].setValue([0, rgb[0]])
-            self.sliders[1].setValue([0, rgb[1]])
-            self.sliders[2].setValue([0, rgb[2]])
-            self.update_plot()
-
     def level_change(self, r):
         r = ["red", "green", "blue"].index(r)
         if self.loaded:
