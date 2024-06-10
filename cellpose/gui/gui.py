@@ -2451,6 +2451,22 @@ class MainW(QMainWindow):
             #     print("NET ERROR: %s"%e)
             #     self.progress.setValue(0)
             #     return
+            np.set_printoptions(
+                threshold=5000)  # allows up to 5000 elements to be printed
+
+            print(masks[:40, :40])  # Print 40 rows/columns of the masks array
+
+            unique_values = np.unique(
+                masks)  #  print unique values in mask array
+            print("Unique values in masks:", unique_values)
+
+            # print shape, size and data type
+            print("Shape:", masks.shape)
+            print("Size:", masks.size)
+            print("Data type:", masks.dtype)
+
+            np.set_printoptions(
+                threshold=1000)  # set threshold back to default value
 
             self.progress.setValue(75)
 
