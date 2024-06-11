@@ -2465,6 +2465,8 @@ class MainW(QMainWindow):
             print("Size:", masks.size)
             print("Data type:", masks.dtype)
 
+            print("stack shape:", self.stack.shape)
+
             image = self.stack[0]
 
             # Extracting and printing the red channel
@@ -2475,6 +2477,11 @@ class MainW(QMainWindow):
 
             # Extracting and printing the blue channel
             print("Blue channel:", image[:20, :20, 2])
+
+            # print shape, size and data type
+            print("Shape:", self.stack.shape)
+            print("Size:", self.stack.size)
+            print("Data type:", self.stack.dtype)
 
             np.set_printoptions(
                 threshold=1000)  # set threshold back to default value
