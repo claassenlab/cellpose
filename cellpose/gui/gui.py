@@ -352,7 +352,7 @@ class MainW(QMainWindow):
         self.color = 0  # 0=RGB, 1=gray, 2=R, 3=G, 4=B
         self.RGBDropDown = QComboBox()
         self.RGBDropDown.addItems(
-            ["RGB", "red=R", "green=G", "blue=B", "gray", "spectral"])
+            ["RGB", "red=R", "green=G", "blue=B", "gray", "spectral", "custom"])
         self.RGBDropDown.setFont(self.medfont)
         self.RGBDropDown.currentIndexChanged.connect(self.color_choose)
         self.satBoxG.addWidget(self.RGBDropDown, b0, 0, 1, 3)
@@ -923,6 +923,7 @@ class MainW(QMainWindow):
         """
         Opens a QColorDialog and updates the background color of the button 
         that was clicked (the sender of the signal) if a valid color is selected.
+        Also sets the visible pixels of the image to the selected color.
         """
         # Get the current color of the sender button
         current_color = self.sender().palette().button().color()
@@ -938,6 +939,20 @@ class MainW(QMainWindow):
             color = color_dialog.selectedColor()
             if color.isValid():
                 self.sender().setStyleSheet(self.get_color_button_style(color.name()))
+
+                # Get the visible image and create a colored version of it
+                visible_image = self.stack[self.currentZ]
+                r, g, b = color.red(), color.green(), color.blue()
+
+                # Create an empty black image
+                colored_image = np.zeros_like(visible_image)
+
+                # Apply the selected color to the non-black pixels
+                mask = visible_image.sum(axis=-1) > 0  # Mask for non-black pixels
+                colored_image[mask] = [r, g, b]
+
+                self.img.setImage(colored_image, autoLevels=False)
+                self.img.setLevels([0, 255])
 
     def get_color_button_style(self, color_name):
         """
@@ -1758,6 +1773,11 @@ class MainW(QMainWindow):
                     image = image.mean(axis=-1)
                 self.img.setImage(image, autoLevels=False, lut=self.cmap[0])
                 self.img.setLevels(self.saturation[0][self.currentZ])
+            # Custom color mapping, for testing
+            elif self.color == 6:
+                black_image = np.zeros_like(image)
+                self.img.setImage(black_image, autoLevels=False)
+                self.img.setLevels([0, 255])
         else:
             image = np.zeros((self.Ly, self.Lx), np.uint8)
             if len(self.flows) >= self.view - 1 and len(self.flows[self.view - 1]) > 0:
