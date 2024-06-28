@@ -13,6 +13,7 @@ from pathlib import Path
 import re
 from . import version_str
 from roifile import ImagejRoi, roiwrite
+import json
 
 try:
     from qtpy import QtGui, QtCore, Qt, QtWidgets
@@ -555,7 +556,7 @@ def masks_flows_to_seg(images, masks, flows, file_names, diams=30., channels=Non
             }
     if restore_type is not None and imgs_restore is not None:
         dat["restore"] = restore_type
-        dat["ratio"] = ratio 
+        dat["ratio"] = ratio
         dat["img_restore"] = imgs_restore
 
     np.save(base + "_seg.npy", dat)
@@ -591,10 +592,36 @@ def save_rois(masks, file_name):
     roiwrite(file_name, rois)
 
 
+def save_settings(file_name):
+    """ save settings to .json file and remove if it already exists
 
-def save_masks(images, masks, flows, file_names, png=True, tif=False, channels=[0, 0],
-               suffix="", save_flows=False, save_outlines=False, 
-               dir_above=False, in_folders=False, savedir=None, save_txt=False,
+    Args:
+        file_name (str): name to save the .json file to
+
+    Returns:
+        None
+    """
+    file_name = os.path.splitext(file_name)[0] + "_cp_settings.json"
+    if os.path.exists(file_name):
+        os.remove(file_name)
+    with open(file_name, 'w') as f:
+        json.dump({}, f)
+
+
+def save_masks(images,
+               masks,
+               flows,
+               file_names,
+               png=True,
+               tif=False,
+               channels=[0, 0],
+               suffix="",
+               save_flows=False,
+               save_outlines=False,
+               dir_above=False,
+               in_folders=False,
+               savedir=None,
+               save_txt=False,
                save_mpl=False):
     """ Save masks + nicely plotted segmentation image to png and/or tiff.
 
@@ -632,10 +659,19 @@ def save_masks(images, masks, flows, file_names, png=True, tif=False, channels=[
 
     if isinstance(masks, list):
         for image, mask, flow, file_name in zip(images, masks, flows, file_names):
-            save_masks(image, mask, flow, file_name, png=png, tif=tif, suffix=suffix,
-                       dir_above=dir_above, save_flows=save_flows,
-                       save_outlines=save_outlines, 
-                       savedir=savedir, save_txt=save_txt, in_folders=in_folders,
+            save_masks(image,
+                       mask,
+                       flow,
+                       file_name,
+                       png=png,
+                       tif=tif,
+                       suffix=suffix,
+                       dir_above=dir_above,
+                       save_flows=save_flows,
+                       save_outlines=save_outlines,
+                       savedir=savedir,
+                       save_txt=save_txt,
+                       in_folders=in_folders,
                        save_mpl=save_mpl)
         return
 
@@ -744,4 +780,5 @@ def save_masks(images, masks, flows, file_names, png=True, tif=False, channels=[
         imsave(os.path.join(flowdir, basename + "_flows" + suffix + ".tif"),
                (flows[0] * (2**16 - 1)).astype(np.uint16))
         #save full flow data
-        imsave(os.path.join(flowdir, basename + "_dP" + suffix + ".tif"), flows[1])
+        imsave(os.path.join(flowdir, basename + "_dP" + suffix + ".tif"),
+               flows[1])

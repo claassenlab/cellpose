@@ -10,7 +10,7 @@ import tifffile
 import logging
 import fastremap
 
-from ..io import imread, imsave, outlines_to_text, add_model, remove_model, save_rois
+from ..io import imread, imsave, outlines_to_text, add_model, remove_model, save_rois, save_settings
 from ..models import normalize_default, MODEL_DIR, MODEL_LIST_PATH, get_user_models
 from ..utils import masks_to_outlines, outlines_list
 
@@ -302,9 +302,9 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
     else:
         parent.filename = image_file
 
-    parent.restore = None 
+    parent.restore = None
     parent.ratio = 1.
-    
+
     if "normalize_params" in dat:
         parent.restore = None if "restore" not in dat else dat["restore"]
         print(f"GUI_INFO: restore: {parent.restore}")
@@ -336,7 +336,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
                     (parent.stack_filtered, np.zeros((*shape[:-1], 1), dtype="float32")), axis=-1)
         elif shape[-1] > 3:
             parent.stack_filtered = parent.stack_filtered[..., :3]
-        
+
         parent.restore = dat["restore"]
         parent.ViewDropDown.model().item(parent.ViewDropDown.count() -
                                          1).setEnabled(True)
@@ -344,7 +344,7 @@ def _load_seg(parent, filename=None, image=None, image_file=None, load_3D=False)
         if parent.restore and "upsample" in parent.restore:
             print(parent.stack_filtered.shape, image.shape)
             parent.ratio = dat["ratio"]
-        
+
     parent.set_restore_button()
 
     _initialize_images(parent, image, load_3D=load_3D)
@@ -602,6 +602,17 @@ def _save_outlines(parent):
         outlines_to_text(base, outlines)
     else:
         print("ERROR: cannot save 3D outlines")
+
+
+def _save_settings(parent):
+    """ save settings to json file"""
+    filename = parent.filename
+    base = os.path.splitext(filename)[0]
+    if parent.NZ == 1:
+        print("GUI_INFO: saving Settings to json file")
+        save_settings(parent.filename)
+    else:
+        print("ERROR: cannot save settings")
 
 
 def _save_sets_with_check(parent):

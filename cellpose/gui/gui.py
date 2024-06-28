@@ -389,7 +389,7 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-    
+
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []
@@ -1158,6 +1158,7 @@ class MainW(QMainWindow):
         self.saveFlows.setEnabled(False)
         self.saveOutlines.setEnabled(False)
         self.saveROIs.setEnabled(False)
+        self.saveSettings.setEnabled(False)
 
         self.MakeDeletionRegionButton.setEnabled(False)
         self.DeleteMultipleROIButton.setEnabled(False)
@@ -1176,12 +1177,14 @@ class MainW(QMainWindow):
             self.saveFlows.setEnabled(True)
             self.saveOutlines.setEnabled(True)
             self.saveROIs.setEnabled(True)
+            self.saveSettings.setEnabled(True)
         else:
             self.saveSet.setEnabled(False)
             self.savePNG.setEnabled(False)
             self.saveFlows.setEnabled(False)
             self.saveOutlines.setEnabled(False)
             self.saveROIs.setEnabled(False)
+            self.saveSettings.setEnabled(False)
 
     def toggle_removals(self):
         if self.ncells > 0:
