@@ -123,17 +123,17 @@ def create_channel_choose():
         if i == 0:
             ChannelLabels[i].setToolTip(
                 "this is the channel in which the cytoplasm or nuclei exist \
-            that you want to segment"                                     )
+            that you want to segment")
             ChannelChoose[i].setToolTip(
                 "this is the channel in which the cytoplasm or nuclei exist \
-            that you want to segment"                                     )
+            that you want to segment")
         else:
             ChannelLabels[i].setToolTip(
                 "if <em>cytoplasm</em> model is chosen, and you also have a \
-            nuclear channel, then choose the nuclear channel for this option"                                                                             )
+            nuclear channel, then choose the nuclear channel for this option")
             ChannelChoose[i].setToolTip(
                 "if <em>cytoplasm</em> model is chosen, and you also have a \
-            nuclear channel, then choose the nuclear channel for this option"                                                                             )
+            nuclear channel, then choose the nuclear channel for this option")
 
     return ChannelChoose, ChannelLabels
 
@@ -407,17 +407,6 @@ class MinimapWindow(QDialog):
         self.setWindowFlags(self.windowFlags() &
                             ~QtCore.Qt.WindowContextHelpButtonHint)
 
-        # get desktop object
-        desktop = QApplication.desktop()
-
-        # Check if there is more than one screen
-        if desktop.screenCount() > 1:
-            # Get the geometry of the second screen
-            screen_geometry = desktop.screenGeometry(1)
-
-            # Set the window to start at the top left corner of the second screen
-            self.move(screen_geometry.left(), screen_geometry.top())
-
         # Create a layout
         layout = QGridLayout()
         layout.setContentsMargins(
@@ -435,7 +424,7 @@ class MinimapWindow(QDialog):
         aspect_ratio = self.mini_image.width() / self.mini_image.height()
 
         # Set the window size
-        self.setFixedSize(400 * aspect_ratio, 400)
+        self.setFixedSize(int(400 * aspect_ratio), 400)
         self.setWindowTitle("Minimap")
 
         # Make viewbox
