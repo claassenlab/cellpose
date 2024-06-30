@@ -69,6 +69,10 @@ def mainmenu(parent):
     file_menu.addAction(parent.saveFlows)
     parent.saveFlows.setEnabled(False)
 
+    parent.toggleMinimap = QAction("Toggle minimap", parent)
+    parent.toggleMinimap.triggered.connect(parent.minimap_window)
+    file_menu.addAction(parent.toggleMinimap)
+
 def editmenu(parent):
     main_menu = parent.menuBar()
     edit_menu = main_menu.addMenu("&Edit")

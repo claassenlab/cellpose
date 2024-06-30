@@ -334,6 +334,10 @@ class MainW(QMainWindow):
         EG = guiparts.ExampleGUI(self)
         EG.show()
 
+    def minimap_window(self):
+        MM = guiparts.MinimapWindow(self)
+        MM.show()
+
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
         self.boldmedfont = QtGui.QFont("Arial", 9, QtGui.QFont.Bold)
@@ -389,7 +393,7 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-    
+
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []

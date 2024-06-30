@@ -123,17 +123,17 @@ def create_channel_choose():
         if i == 0:
             ChannelLabels[i].setToolTip(
                 "this is the channel in which the cytoplasm or nuclei exist \
-            that you want to segment")
+            that you want to segment"                                     )
             ChannelChoose[i].setToolTip(
                 "this is the channel in which the cytoplasm or nuclei exist \
-            that you want to segment")
+            that you want to segment"                                     )
         else:
             ChannelLabels[i].setToolTip(
                 "if <em>cytoplasm</em> model is chosen, and you also have a \
-            nuclear channel, then choose the nuclear channel for this option")
+            nuclear channel, then choose the nuclear channel for this option"                                                                             )
             ChannelChoose[i].setToolTip(
                 "if <em>cytoplasm</em> model is chosen, and you also have a \
-            nuclear channel, then choose the nuclear channel for this option")
+            nuclear channel, then choose the nuclear channel for this option"                                                                             )
 
     return ChannelChoose, ChannelLabels
 
@@ -393,6 +393,66 @@ class TrainHelpWindow(QDialog):
         # Call adjust_font_size when the window is resized
         self.adjust_font_size()
         super().resizeEvent(event)
+
+
+class MinimapWindow(QDialog):
+    """
+    MinimapWindow class is a QDialog that displays a minimap of the current image in the main window.
+    """
+
+    def __init__(self, parent=None):
+        super(MinimapWindow, self).__init__(parent)
+
+        # remove qm
+        self.setWindowFlags(self.windowFlags() &
+                            ~QtCore.Qt.WindowContextHelpButtonHint)
+
+        # get desktop object
+        desktop = QApplication.desktop()
+
+        # Check if there is more than one screen
+        if desktop.screenCount() > 1:
+            # Get the geometry of the second screen
+            screen_geometry = desktop.screenGeometry(1)
+
+            # Set the window to start at the top left corner of the second screen
+            self.move(screen_geometry.left(), screen_geometry.top())
+
+        # Create a layout
+        layout = QGridLayout()
+        layout.setContentsMargins(
+            0, 0, 0, 0)  # Set margins (left, top, right, bottom) to zero
+        self.setLayout(layout)
+
+        # Create a widget that holds the image
+        self.image_widget = pg.GraphicsLayoutWidget()
+        layout.addWidget(self.image_widget, 0, 0, 1, 1)
+
+        # Load image
+        self.mini_image = pg.ImageItem(parent.stack[parent.currentZ])
+
+        # Calculate the aspect ratio of the image
+        aspect_ratio = self.mini_image.width() / self.mini_image.height()
+
+        # Set the window size
+        self.setFixedSize(400 * aspect_ratio, 400)
+        self.setWindowTitle("Minimap")
+
+        # Make viewbox
+        self.viewbox = pg.ViewBox()
+        self.viewbox.addItem(self.mini_image)
+        self.viewbox.setAspectLocked()
+        self.viewbox.setMouseEnabled(x=False, y=False)
+        self.viewbox.setLimits(xMin=0, xMax=parent.Lx, yMin=0, yMax=parent.Ly)
+        self.viewbox.invertY(True)
+        self.image_widget.addItem(self.viewbox)
+
+        # Set the visible range to the size of the image
+        self.viewbox.setRange(
+            QtCore.QRectF(0, 0, self.mini_image.width(),
+                          self.mini_image.height()))
+
+        self.show()
 
 
 
