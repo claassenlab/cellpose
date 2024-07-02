@@ -3,12 +3,13 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 """
 
 from qtpy import QtGui, QtCore, QtWidgets
-from qtpy.QtGui import QPainter, QPixmap
+from qtpy.QtGui import QPainter, QPixmap, QPen, QColor
 from qtpy.QtWidgets import QApplication, QRadioButton, QWidget, QDialog, QButtonGroup, QSlider, QStyle, QStyleOptionSlider, QGridLayout, QPushButton, QLabel, QLineEdit, QDialogButtonBox, QComboBox, QCheckBox
 from qtpy.QtGui import QFont
 import pyqtgraph as pg
 from pyqtgraph import functions as fn
 from pyqtgraph import Point
+from pyqtgraph import RectROI
 import numpy as np
 import pathlib, os
 
@@ -435,6 +436,12 @@ class MinimapWindow(QDialog):
         self.viewbox.setLimits(xMin=0, xMax=parent.Lx, yMin=0, yMax=parent.Ly)
         self.viewbox.invertY(True)
         self.image_widget.addItem(self.viewbox)
+        self.rectangle = self.makeHighlightArea()
+        self.viewbox.addItem(self.rectangle)
+        self.viewbox.setCursor(QtCore.Qt.CrossCursor)
+        self.viewbox.setMenuEnabled(False)
+
+
 
         # Set the visible range to the size of the image
         self.viewbox.setRange(
@@ -442,6 +449,65 @@ class MinimapWindow(QDialog):
                           self.mini_image.height()))
 
         self.show()
+
+        # track mouse click
+    def mousePressEvent(self, event):
+        # Get the coordinates of the mouse click
+        x = event.pos().x()
+        y = event.pos().y()
+        # Print or return the coordinates
+        print(f"Mouse clicked at coordinates: ({x}, {y})")
+
+        # Get the parent
+        parent = self.parent()
+        img_width = parent.img.width()
+        img_height = parent.img.height()
+
+        # Map the coordinates to the ViewBox
+        pos_in_viewbox = self.viewbox.mapToView(event.pos())
+        pos_in_viewbox2 = parent.p0.mapToView(event.pos())
+
+        # Calculate the translation amounts
+        dx = pos_in_viewbox.x() - parent.img.width() / 2
+        dy = pos_in_viewbox.y() - parent.img.height() / 2
+
+        # Translate the view of the ViewBox
+        #parent.p0.translateBy(x=-dx, y=-dy)
+
+        # Calculate the new visible range
+        new_x_range = [pos_in_viewbox2.x() - parent.img.width() / 2, pos_in_viewbox2.x() + parent.img.width() / 2]
+        new_y_range = [pos_in_viewbox2.y() - parent.img.height() / 2, pos_in_viewbox2.y() + parent.img.height() / 2]
+
+        # Set the visible range of the ViewBox
+        parent.p0.setRange(xRange=new_x_range, yRange=new_y_range, padding=0)
+
+        # Set the position of the image and rectangle in the parent's ViewBox
+        #parent.img.setPos(pos_in_viewbox2.x() - img_height / 2, pos_in_viewbox2.y() - img_width / 2)
+        self.rectangle.setPos(pos_in_viewbox.x() - (100 + 20), pos_in_viewbox.y() - (100 + 20))
+
+        # Update the image
+        super().mousePressEvent(event)
+
+    def makeHighlightArea(self):
+        # Create an empty transparent image
+        # Shape is (200, 200, 4) for height, width, and RGBA channels
+        image = np.zeros((200, 200, 4), dtype=np.uint8)
+
+        # Define the rectangle parameters
+        top_left = (50, 50)
+        bottom_right = (150, 150)
+
+        # Draw the rectangle
+        image[top_left[1]:bottom_right[1], top_left[0], :3] = 255  # Left vertical line
+        image[top_left[1]:bottom_right[1], bottom_right[0], :3] = 255  # Right vertical line
+        image[top_left[1], top_left[0]:bottom_right[0], :3] = 255  # Top horizontal line
+        image[bottom_right[1], top_left[0]:bottom_right[0], :3] = 255  # Bottom horizontal line
+
+        # Set the alpha channel to 255 for the rectangle
+        image[top_left[1]:bottom_right[1], [top_left[0], bottom_right[0]], 3] = 255  # Vertical lines
+        image[[top_left[1], bottom_right[1]], top_left[0]:bottom_right[0], 3] = 255  # Horizontal lines
+
+        return pg.ImageItem(image)
 
 
 
