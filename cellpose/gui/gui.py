@@ -404,6 +404,17 @@ class MainW(QMainWindow):
         self.p0.setXRange(*new_x_range, padding=0)
         self.p0.setYRange(*new_y_range, padding=0)
 
+    def onViewChanged(self):
+
+        view_rect = self.p0.viewRect()
+        x = view_rect.left()
+        y = view_rect.top()
+        width = view_rect.width()
+        height = view_rect.height()
+
+        print(f"Viewbox coordinates: x={x}, y={y}")
+        print(f"Viewbox dimensions: width={width}, height={height}")
+
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
