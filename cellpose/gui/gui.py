@@ -408,13 +408,23 @@ class MainW(QMainWindow):
         self.p0.setYRange(*new_y_range, padding=0)
 
     def onViewChanged(self):
-
+        """
+        This function is called when the view in the viewbox is changed.
+        This happens, whenever the image is zoomed in or zoomed out.
+        It saves the coordinates of the viewbox, as well as its width and height.
+        """
+        # Access the positional values of the viewbox p0 in form of a rectangle using viewRect()
         view_rect = self.p0.viewRect()
+
+        # Extract the x and y coordinates of the viewbox
         x = view_rect.left()
         y = view_rect.top()
+
+        # Extract the dimensions of the viewbox
         width = view_rect.width()
         height = view_rect.height()
 
+        # Print the coordinates and dimensions of the viewbox for control purposes
         print(f"Viewbox coordinates: x={x}, y={y}")
         print(f"Viewbox dimensions: width={width}, height={height}")
 
