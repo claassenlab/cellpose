@@ -323,6 +323,26 @@ class MainW(QMainWindow):
         self.win.show()
         self.show()
 
+    def print_cellpix(self):
+        """
+        Prints the contents of the cellpix attribute.
+        """
+        # Save the current print options
+        # original_options = np.get_printoptions()
+
+        # Set the print options to display the entire array
+        # np.set_printoptions(threshold=np.inf)
+
+        # Print the cellpix array
+        print(self.cellpix)
+
+        # print unique values in cellpix array
+        unique_values = np.unique(self.cellpix)
+        print("Unique values in cellpix:", unique_values)
+
+        # Reset the print options to their original values
+        # np.set_printoptions(**original_options)
+
     def help_window(self):
         HW = guiparts.HelpWindow(self)
         HW.show()
@@ -1943,6 +1963,7 @@ class MainW(QMainWindow):
         d = datetime.datetime.now()
         self.track_changes.append(
             [d.strftime("%m/%d/%Y, %H:%M:%S"), "added mask", [ar, ac]])
+        self.print_cellpix()
         return median
 
     def draw_mask(self, z, ar, ac, vr, vc, color, idx=None):

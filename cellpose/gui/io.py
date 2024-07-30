@@ -570,6 +570,8 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
     else:
         parent.ViewDropDown.setCurrentIndex(0)
 
+    parent.print_cellpix()
+
 def _save_features_csv(parent):
     """
     Saves features to CSV if dataset is 2D.
