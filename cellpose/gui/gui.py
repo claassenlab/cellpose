@@ -301,6 +301,9 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
+        # if the image in the viewbox is zoomed in/out, the method onViewChanged is called
+        self.p0.sigRangeChanged.connect(self.onViewChanged)
+
         # if called with image, load it
         if image is not None:
             self.filename = image
