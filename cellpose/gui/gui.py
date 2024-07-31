@@ -433,6 +433,22 @@ class MainW(QMainWindow):
         print(f"Viewbox coordinates: x={x}, y={y}")
         print(f"Viewbox dimensions: width={width}, height={height}")
 
+        # Get the size of the image
+        img_height = self.img.image.shape[0]
+        img_width = self.img.image.shape[1]
+
+        # Calulate the normalized coordinates
+        normalized_x = x / img_width
+        normalized_y = y / img_height
+
+        # Calculate the normalized dimensions
+        normalized_width = width / img_width
+        normalized_height = height / img_height
+
+        # Print the coordinates and dimensions of the view box for control purposes
+        print(f"Normalized Viewbox coordinates: x={normalized_x}, y={normalized_y}")
+        print(f"Normalized Viewbox dimensions: width={normalized_width}, height={normalized_height}")
+
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -489,7 +505,7 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-    
+
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []
