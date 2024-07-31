@@ -414,40 +414,96 @@ class MainW(QMainWindow):
         This includes it being zoomed in or zoomed out, as well as it being moved around.
 
         Returns:
-            Coordinates of the view box (x, y)
+            Coordinates of the view box (x_coordinates, y_coordinates)
+            Normalized coordinates of the view box (normalized_x, normalized_y)
             Dimensions of the view box (width, height)
+            Normalized dimensions of the view box (normalized_width, normalized_height)
         """
+
+        # Get the size of the image
+        img_height = self.img.image.shape[0]
+        img_width = self.img.image.shape[1]
+
+
+        """Version using viewRect"""
+
+        # version using viewRect
         # Access the positional values of the view box p0 in form of a rectangle using viewRect()
         view_rect = self.p0.viewRect()
 
         # Extract the x and y coordinates of the view box
-        x = view_rect.left()
-        y = view_rect.top()
-        # (alternatively, you could use view_rect.x() and view_rect.y(), it results in the same coordinates)
+        x_left = view_rect.left()
+        x_right = view_rect.right()
+        x_coordinates = [x_left, x_right]
+        y_top = view_rect.top()
+        y_bottom = view_rect.bottom()
+        y_coordinates = [y_top, y_bottom]
 
         # Extract the dimensions of the view box
         width = view_rect.width()
         height = view_rect.height()
 
         # Print the coordinates and dimensions of the view box for control purposes
-        print(f"Viewbox coordinates: x={x}, y={y}")
+        print(f"Viewbox coordinates: x={x_left, x_right}, y={y_top, y_bottom}")
         print(f"Viewbox dimensions: width={width}, height={height}")
 
-        # Get the size of the image
-        img_height = self.img.image.shape[0]
-        img_width = self.img.image.shape[1]
-
-        # Calulate the normalized coordinates
-        normalized_x = x / img_width
-        normalized_y = y / img_height
+        # Calculate the normalized coordinates
+        normalized_x = tuple(coordinate / img_width for coordinate in x_coordinates)
+        normalized_y = tuple(coordinate / img_height for coordinate in y_coordinates)
 
         # Calculate the normalized dimensions
         normalized_width = width / img_width
         normalized_height = height / img_height
 
         # Print the coordinates and dimensions of the view box for control purposes
-        print(f"Normalized Viewbox coordinates: x={normalized_x}, y={normalized_y}")
-        print(f"Normalized Viewbox dimensions: width={normalized_width}, height={normalized_height}")
+        print(
+            f"Normalized Viewbox coordinates: x={normalized_x}, y={normalized_y}"
+        )
+        print(
+            f"Normalized Viewbox dimensions: width={normalized_width}, height={normalized_height}"
+        )
+
+
+        """Version using viewRange (similar to centerViewOnPosition)"""
+
+        # Get the current view range of the view box p0.
+        # This tells us in form of coordinates which part of the image is currently displayed.
+        view_range = self.p0.viewRange()
+
+        # Print the coordinates for control purposes
+        print("View range: ", view_range)
+
+        # Extract the x and y ranges
+        x_range = view_range[0]
+        y_range = view_range[1]
+
+        # Calculate the normalized coordinates
+        normalized_x_range = [x_range[0] / img_width, x_range[1] / img_width]
+        normalized_y_range = [y_range[0] / img_height, y_range[1] / img_height]
+
+        # Print the normalized coordinates for control purposes
+        print("normalized x range:", normalized_x_range)
+        print("normalized y range: ", normalized_y_range)
+
+        # Calculate the current zoom level
+        zoom_x = (x_range[1] - x_range[0]) / img_width
+        zoom_y = (y_range[1] - y_range[0]) / img_height
+
+        # Calculate the width and height of the view range (= the dimensions) based on the zoom level
+        view_width = img_width * zoom_x
+        view_height = img_height * zoom_y
+
+        # Print the dimensions for control purposes
+        print("View width: ", view_width)
+        print("View height: ", view_height)
+
+        # Normalize the view width and height
+        normalized_view_width = view_width / img_width
+        normalized_view_height = view_height / img_height
+
+        # Print the normalized dimensions for control purposes
+        print("Normalized view width: ", normalized_view_width)
+        print("Normalized view height: ", normalized_view_height)
 
 
     def make_buttons(self):
