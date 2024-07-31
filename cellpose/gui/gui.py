@@ -301,7 +301,7 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
-        # if the image in the viewbox is zoomed in/out, the method onViewChanged is called
+        # if the image in the view box is changed, the method onViewChanged is called
         self.p0.sigRangeChanged.connect(self.onViewChanged)
 
         # if called with image, load it
@@ -409,22 +409,27 @@ class MainW(QMainWindow):
 
     def onViewChanged(self):
         """
-        This function is called when the view in the viewbox is changed.
-        This happens, whenever the image is zoomed in or zoomed out.
-        It saves the coordinates of the viewbox, as well as its width and height.
+        This function is called when the view in the view box is changed.
+        This happens, whenever the view of the image is changed in some way.
+        This includes it being zoomed in or zoomed out, as well as it being moved around.
+
+        Returns:
+            Coordinates of the view box (x, y)
+            Dimensions of the view box (width, height)
         """
-        # Access the positional values of the viewbox p0 in form of a rectangle using viewRect()
+        # Access the positional values of the view box p0 in form of a rectangle using viewRect()
         view_rect = self.p0.viewRect()
 
-        # Extract the x and y coordinates of the viewbox
+        # Extract the x and y coordinates of the view box
         x = view_rect.left()
         y = view_rect.top()
+        # (alternatively, you could use view_rect.x() and view_rect.y(), it results in the same coordinates)
 
-        # Extract the dimensions of the viewbox
+        # Extract the dimensions of the view box
         width = view_rect.width()
         height = view_rect.height()
 
-        # Print the coordinates and dimensions of the viewbox for control purposes
+        # Print the coordinates and dimensions of the view box for control purposes
         print(f"Viewbox coordinates: x={x}, y={y}")
         print(f"Viewbox dimensions: width={width}, height={height}")
 
