@@ -418,10 +418,6 @@ class MainW(QMainWindow):
             Normalized dimensions of the view box (normalized_width, normalized_height)
         """
 
-        # Get the size of the image
-        img_height = self.img.image.shape[0]
-        img_width = self.img.image.shape[1]
-
         # Access the positional values of the view box p0 in form of a rectangle using viewRect()
         view_rect = self.p0.viewRect()
 
@@ -433,16 +429,31 @@ class MainW(QMainWindow):
         width = view_rect.width()
         height = view_rect.height()
 
-        # Calculate the normalized coordinates in relation to the image size
-        normalized_x = tuple(
-            coordinate / img_width for coordinate in x_coordinates)
-        normalized_y = tuple(
-            coordinate / img_height for coordinate in y_coordinates)
+        # Print statements to test the absolute values of coordinates and dimensions
+        print(f"Viewbox coordinates: x={x_coordinates}, y={y_coordinates}")
+        print(f"Viewbox dimensions: width={width}, height={height}")
 
-        # Calculate the normalized dimensions
-        normalized_width = width / img_width
-        normalized_height = height / img_height
+        if self.img.image is not None:
 
+            # Get the size of the image
+            img_height = self.img.image.shape[0]
+            img_width = self.img.image.shape[1]
+
+            # Calculate the normalized coordinates in relation to the image size
+            normalized_x = tuple(
+                coordinate / img_width for coordinate in x_coordinates)
+            normalized_y = tuple(
+                coordinate / img_height for coordinate in y_coordinates)
+
+            # Calculate the normalized dimensions
+            normalized_width = width / img_width
+            normalized_height = height / img_height
+
+            # Print statements to test the normalized values of coordinates and dimensions
+            print(f"Normalized Viewbox coordinates: x={normalized_x}, y={normalized_y}")
+            print(f"Normalized Viewbox dimensions: width={normalized_width}, height={normalized_height}")
+
+            return normalized_x, normalized_y, normalized_width, normalized_height
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
