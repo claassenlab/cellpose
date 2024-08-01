@@ -301,7 +301,7 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
-        # if the image in the view box is changed, the method onViewChanged is called
+        # if the view of the image is changed, the method onViewChanged is called
         self.p0.sigRangeChanged.connect(self.onViewChanged)
 
         # if called with image, load it
@@ -409,9 +409,9 @@ class MainW(QMainWindow):
 
     def onViewChanged(self):
         """
-        This function is called when the view in the view box is changed.
-        This happens whenever the view of the image is changed in some way.
+        This function is called whenever the view of the image in the view box is changed.
         This includes it being zoomed in or zoomed out, as well as it being moved around.
+        It normalizes coordinates and dimensions of the view box in relation to the current image.
 
         Returns:
             Normalized coordinates of the view box (normalized_x, normalized_y)
@@ -422,7 +422,6 @@ class MainW(QMainWindow):
         img_height = self.img.image.shape[0]
         img_width = self.img.image.shape[1]
 
-        # version using viewRect
         # Access the positional values of the view box p0 in form of a rectangle using viewRect()
         view_rect = self.p0.viewRect()
 
