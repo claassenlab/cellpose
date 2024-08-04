@@ -380,7 +380,6 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-            colored_image.show()
 
 
     def minimap_closed(self):
