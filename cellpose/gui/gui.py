@@ -4,6 +4,7 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import sys, os, pathlib, warnings, datetime, time, copy
 
+from PyQt6.QtGui import QColor
 from qtpy import QtGui, QtCore
 from superqt import QRangeSlider, QCollapsible
 from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
@@ -40,6 +41,45 @@ Horizontal = QtCore.Qt.Orientation.Horizontal
 
 
 class Slider(QRangeSlider):
+
+    def __init__(self, parent, name, color):
+        super().__init__(Horizontal)
+        self.setEnabled(False)
+        self.valueChanged.connect(lambda: self.levelChanged(parent))
+        self.name = name
+
+        self.setStyleSheet(""" QSlider{
+                             background-color: transparent;
+                             }
+        """)
+        self.show()
+
+    def levelChanged(self, parent):
+        parent.level_change(self.name)
+
+class Multi_slider(QRangeSlider):
+    def __init__(self, parent, name, color):
+        super().__init__(Qt.Horizontal, parent)  # Ensure parent is passed to Q
+        self.name = name
+        self.setEnabled(False)  # Initially disabled, can be enabled when needed
+        self.valueChanged.connect(lambda value, parent=parent: self.levelChanged(parent))
+        self.init_style(color)
+
+    def init_style(self, color):
+        # Set style based on color
+        self.setStyleSheet(""" QSlider{
+                                     background-color: transparent;
+                                     }
+                """)
+        self.hide()  # Hide on creation, show when needed
+
+    def levelChanged(self, parent):
+        parent.level_change(self.name)
+
+    def activate(self, color):
+        self.setStyleSheet(self.init_style(color))
+        self.setEnabled(True)
+        self.show()
 
     def __init__(self, parent, name, color):
         super().__init__(Horizontal)
@@ -952,6 +992,50 @@ class MainW(QMainWindow):
         self.l0.addWidget(self.ScaleOn, b, 0, 1, 5)
 
         return b
+
+    def generate_multi_channel_ui(self):
+
+        print(len(self.grayscale_image_stack))
+        # Clear the right box layout
+        for i in reversed(range(self.rightBoxLayout.count())):
+            widget_to_remove = self.rightBoxLayout.itemAt(i).widget()
+            if widget_to_remove is not None:
+                widget_to_remove.setParent(None)
+
+        self.sliders = []
+        colors = [
+             "red", "green", "blue", "yellow", "magenta", "cyan", "orange" ]
+
+
+        # ---Create a list of color/on-off buttons  ---#
+
+        self.marker_buttons = [self.create_color_button(color) for color in colors]
+        self.on_off_buttons = [self.create_on_off_button() for color in colors]
+
+
+        # Iterate over the number of channels in the grayscale image stack
+        for r in range(len(self.grayscale_image_stack)):
+            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
+            color_button = self.marker_buttons[r]  # get the corresponding color button
+            self.marker_buttons = [self.create_color_button(color) for color in colors]
+            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
+            label.setStyleSheet("color: white")
+            label.setFont(self.boldmedfont)
+            self.rightBoxLayout.addWidget(label, r, 0, 1, 1)
+            self.rightBoxLayout.addWidget(color_button, r, 9, 1, 1)  # add the color button to the layout
+            self.rightBoxLayout.addWidget(on_off_button, r, 10, 1, 1)  # add the on-off button to the layout
+            self.sliders.append(Slider(self, colors[r], None))
+            self.sliders[-1].setMinimum(-.1)
+            self.sliders[-1].setMaximum(255.1)
+            self.sliders[-1].setValue([0, 255])
+            self.sliders[-1].setToolTip(
+                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
+            )
+
+            self.sliders[-1].setFixedWidth(250)
+            self.rightBoxLayout.addWidget(self.sliders[-1], r, 2, 1, 7)
+            stretch_widget = QWidget()
+            self.rightBoxLayout.addWidget(stretch_widget)
 
     def create_color_button(self, color):
         """
