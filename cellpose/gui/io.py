@@ -110,21 +110,6 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
         name = QFileDialog.getOpenFileName(parent, "Load image")
         filename = name[0]
 
-    #checks if the file is a tiff
-    if filename and (filename.endswith('.tif') or filename.endswith('.tiff')):
-        successful_import, grayscale_image_stack = initialize_tiff_images(
-            filename)
-        if successful_import:
-            parent.grayscale_image_stack = grayscale_image_stack
-
-            # Initialize the colors and colored_image_stack attributes
-            parent.color_initialization()
-            parent.generate_color_image_stack()
-
-            # Initialize the Buttons and sliders
-            # parent.generate_multi_channel_ui()
-
-
     manual_file = os.path.splitext(filename)[0] + "_seg.npy"
     load_mask = False
     if load_seg:
@@ -140,6 +125,21 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             load_mask = True if os.path.isfile(mask_file) else False
     try:
         print(f"GUI_INFO: loading image: {filename}")
+        if Image.open(filename).format == 'TIFF':
+            successful_import, grayscale_image_stack = initialize_tiff_images(
+                filename)
+            if successful_import:
+                parent.loaded = True
+                parent.grayscale_image_stack = grayscale_image_stack
+
+                # Initialize the colors and colored_image_stack attributes
+                parent.color_initialization()
+                parent.generate_color_image_stack()
+
+                # Initialize the Buttons and sliders
+                # parent.generate_multi_channel_ui()
+            else:
+                raise Exception("ERROR: Could not load tiff image")
         image = imread(filename)
         parent.loaded = True
     except Exception as e:
