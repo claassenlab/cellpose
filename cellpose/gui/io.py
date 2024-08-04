@@ -463,7 +463,6 @@ def _load_masks(parent, filename=None):
     """ load zeros-based masks (0=no cell, 1=cell 1, ...) """
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load masks (PNG or TIFF)")
-        print()
         filename = name[0]
     print(f"GUI_INFO: loading masks: {filename}")
     masks = imread(filename)
