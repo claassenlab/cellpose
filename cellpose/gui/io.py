@@ -589,8 +589,7 @@ def _save_features_csv(parent):
     if parent.NZ == 1:
         print("GUI_INFO: saving features to CSV file")
         # this gives us the channels that are currently loaded
-        channels = [parent.ChannelChoose[0].currentText(), parent.ChannelChoose[1].currentText()]
-        # apparently not lol
+        channels = parent.grayscale_image_stack
         save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")

@@ -579,7 +579,7 @@ def save_features_csv(file_name, cellpix, channels):
     if os.path.exists(file_name):
         os.remove(file_name)
 
-        # Get unique cell ids (excluding background which is assumed to be 0)
+    # Get unique cell ids (excluding background which is assumed to be 0)
     cell_ids = np.unique(cellpix)
     cell_ids = cell_ids[cell_ids != 0]
 
