@@ -9,6 +9,7 @@ import cv2
 import tifffile
 import logging
 import fastremap
+from PIL import Image, ImageSequence, ImageOps
 
 from ..io import imread, imsave, outlines_to_text, add_model, remove_model, save_rois, save_settings, save_features_csv
 from ..models import normalize_default, MODEL_DIR, MODEL_LIST_PATH, get_user_models
@@ -105,6 +106,13 @@ def _get_train_set(image_names):
 
 def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     """ load image with filename; if None, open QFileDialog """
+    #checks if the file is a tiff
+    if filename and (filename.endswith('.tif') or filename.endswith('.tiff')):
+        successful_import, grayscale_image_stack = initialize_tiff_images(parent, filename)
+        if successful_import:
+            parent.grayscale_image_stack = grayscale_image_stack
+            parent.generate_multi_channel_ui()
+
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load image")
         filename = name[0]
@@ -744,3 +752,24 @@ def _save_sets(parent):
     del dat
     #print(parent.point_sets)
     print("GUI_INFO: %d ROIs saved to %s" % (parent.ncells, base + "_seg.npy"))
+
+
+def initialize_tiff_images(tiff_file_path):
+    images = []
+    ret, images = cv2.imreadmulti(mats=images,
+                                  filename=tiff_file_path,
+                                  start=0,
+                                  count=-1,
+                                  flags=cv2.IMREAD_GRAYSCALE)
+
+    if ret:
+        processed_images = []
+        for img in images:
+            # Convert the grayscale image to an LA image with black as transparent and white as opaque with a white background in the L channel
+            img = Image.fromarray(img)
+            white_bg = Image.new("L", img.size, 255)
+            img = Image.merge("LA", (white_bg, img))
+            processed_images.append(img)
+        return ret, processed_images
+    return ret, []
+
