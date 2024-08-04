@@ -108,10 +108,10 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     """ load image with filename; if None, open QFileDialog """
     #checks if the file is a tiff
     if filename and (filename.endswith('.tif') or filename.endswith('.tiff')):
-        successful_import, grayscale_image_stack = initialize_tiff_images(parent, filename)
+        successful_import, grayscale_image_stack = initialize_tiff_images(filename)
         if successful_import:
             parent.grayscale_image_stack = grayscale_image_stack
-            parent.generate_multi_channel_ui()
+            # parent.generate_multi_channel_ui()
 
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load image")
