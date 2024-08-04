@@ -230,6 +230,7 @@ class MainW(QMainWindow):
                            border: black solid 1px
                            }"""
         self.loaded = False
+        self.tiff_loaded = False
 
         # ---- MAIN WIDGET LAYOUT ---- #
         self.cwidget = QWidget(self)
@@ -366,8 +367,10 @@ class MainW(QMainWindow):
             (0, 255, 255),  # Cyan
             (255, 165, 0)  # Orange
         ]
+        self.colors_stack = []  # Ensure colors_stack is empty before initialization
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
+        print("Initialized colors_stack:", self.colors_stack)  # Debug print
 
     def generate_color_image_stack(self):
         for i in range(len(self.grayscale_image_stack)):
@@ -380,7 +383,8 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-
+            print(self.colors_stack[i])  # Debug print
+            self.colored_image_stack[i].show()
 
     def minimap_closed(self):
         """
@@ -436,6 +440,37 @@ class MainW(QMainWindow):
         self.p0.setXRange(*new_x_range, padding=0)
         self.p0.setYRange(*new_y_range, padding=0)
 
+    def generate_multi_channel_ui(self, n):
+        c = 0  # position of the elements in the right side menu
+
+        self.sliders = []
+        #self.colors_stack = [(255, 0, 0)] * n  # Default colors (red) for each channel
+        self.marker_buttons = [self.create_color_button("red", i) for i in range(n)]
+        self.on_off_buttons = [self.create_on_off_button() for i in range(n)]
+
+        for r in range(n):
+            c += 1
+
+            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
+            color_button = self.marker_buttons[r]  # get the corresponding color button
+            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
+            label.setStyleSheet("color: white")
+            label.setFont(self.boldmedfont)
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
+            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
+            self.sliders.append(Slider(self, "blue", None))
+            self.sliders[-1].setMinimum(-.1)
+            self.sliders[-1].setMaximum(255.1)
+            self.sliders[-1].setValue([0, 255])
+            self.sliders[-1].setToolTip(
+                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
+            )
+
+            self.sliders[-1].setFixedWidth(250)
+            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
+            stretch_widget = QWidget()
+            self.rightBoxLayout.addWidget(stretch_widget)
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -498,7 +533,7 @@ class MainW(QMainWindow):
         self.sliders = []
         # ---Create a list (extendable) of color/on-off buttons  ---#
         colors = ["red", "green", "blue"]
-        self.marker_buttons = [self.create_color_button(color) for color in colors]
+        self.marker_buttons = [self.create_color_button(color, None) for color in colors]
         self.on_off_buttons = [self.create_on_off_button() for color in colors]
 
         for r in range(3):
@@ -506,7 +541,7 @@ class MainW(QMainWindow):
 
             label = QLabel(f'Marker {r + 1}')  # create a label for each marker
             color_button = self.marker_buttons[r]  # get the corresponding color button
-            self.marker_buttons = [self.create_color_button(color) for color in colors]
+            self.marker_buttons = [self.create_color_button(color, None) for color in colors]
             on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
             label.setStyleSheet("color: white")
             label.setFont(self.boldmedfont)
@@ -980,19 +1015,21 @@ class MainW(QMainWindow):
 
         return b
 
-    def create_color_button(self, color):
+    def create_color_button(self, color, index):
         """
-            Creates and initializes all the buttons and UI elements used in the GUI.
-            This includes buttons for changing views, drawing, segmentation, model
-            selection, and image restoration. Also initializes color buttons with
-            specific colors (red, green, blue) and on-off buttons.
+        Creates a QPushButton with a specific color and connects its clicked signal
+        to open_color_dialog method with the index as a parameter.
 
-            Returns:
-                int: The number of buttons and UI elements created.
-            """
+        Args:
+            color (str): The initial color of the button.
+            index (int): The index of the button in the stack.
+
+        Returns:
+            QPushButton: The created color button.
+        """
         color_button = QPushButton()
         color_button.setStyleSheet(self.get_color_button_style(color))
-        color_button.clicked.connect(self.open_color_dialog)
+        color_button.clicked.connect(lambda: self.open_color_dialog(index))
         return color_button
 
     def create_on_off_button(self):
@@ -1022,25 +1059,32 @@ class MainW(QMainWindow):
         else:
             button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
 
-    def open_color_dialog(self):
+    def open_color_dialog(self, index):
         """
-        Opens a QColorDialog and updates the background color of the button 
+        Opens a QColorDialog and updates the background color of the button
         that was clicked (the sender of the signal) if a valid color is selected.
+        Also updates the color in the colors_stack at the given index.
+
+        Args:
+            index (int): The index of the button in the stack.
         """
         # Get the current color of the sender button
-        current_color = self.sender().palette().button().color()
+        current_color = self.colors_stack[index]
 
         # Create a QColorDialog instance
         color_dialog = QColorDialog()
-
-        # Set the current color of the dialog
-        color_dialog.setCurrentColor(current_color)
+        color_dialog.setCurrentColor(QtGui.QColor(*current_color))
 
         # Execute the dialog and check if a valid color is selected
         if color_dialog.exec_():
             color = color_dialog.selectedColor()
             if color.isValid():
-                self.sender().setStyleSheet(self.get_color_button_style(color.name()))
+                self.colors_stack[index] = (color.red(), color.green(), color.blue())
+                print(f'Updated color at index {index}: {self.colors_stack[index]}')  # Debug print
+                self.generate_color_image_stack()
+                self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
+                self.colored_image_stack[index].show()
+
 
     def get_color_button_style(self, color_name):
         """
@@ -1060,7 +1104,7 @@ class MainW(QMainWindow):
                 height: 12px;
                 width: 12px;
                 }}
-            """
+                """
 
     def level_change(self, r):
         r = ["red", "green", "blue"].index(r)

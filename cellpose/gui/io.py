@@ -121,8 +121,8 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             parent.color_initialization()
             parent.generate_color_image_stack()
 
-            # Initialize the Buttons and sliders
-            # parent.generate_multi_channel_ui()
+            parent.tiff_loaded = True
+            parent.generate_multi_channel_ui(len(parent.colored_image_stack))
 
 
     manual_file = os.path.splitext(filename)[0] + "_seg.npy"
