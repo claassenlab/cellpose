@@ -1041,7 +1041,6 @@ class MainW(QMainWindow):
         if color_dialog.exec_():
             color = color_dialog.selectedColor()
             if color.isValid():
-                print(color)
                 self.sender().setStyleSheet(self.get_color_button_style(color.name()))
 
     def get_color_button_style(self, color_name):
