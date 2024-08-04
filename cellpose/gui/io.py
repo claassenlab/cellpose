@@ -764,20 +764,23 @@ def _save_sets(parent):
 
 
 def initialize_tiff_images(tiff_file_path):
-    images = []
-    ret, images = cv2.imreadmulti(mats=images,
-                                  filename=tiff_file_path,
-                                  start=0,
-                                  count=-1,
-                                  flags=cv2.IMREAD_GRAYSCALE)
+    try:
+        images = []
+        ret, images = cv2.imreadmulti(mats=images,
+                                      filename=tiff_file_path,
+                                      start=0,
+                                      count=-1,
+                                      flags=cv2.IMREAD_GRAYSCALE)
 
-    if ret:
-        processed_images = []
-        for img in images:
-            # Convert the grayscale image to an LA image with black as transparent and white as opaque with a white background in the L channel
-            img = Image.fromarray(img)
-            white_bg = Image.new("L", img.size, 255)
-            img = Image.merge("LA", (white_bg, img))
-            processed_images.append(img)
-        return ret, processed_images
-    return ret, []
+        if ret:
+            processed_images = []
+            for img in images:
+                # Convert the grayscale image to an LA image with black as transparent and white as opaque with a white background in the L channel
+                img = Image.fromarray(img)
+                white_bg = Image.new("L", img.size, 255)
+                img = Image.merge("LA", (white_bg, img))
+                processed_images.append(img)
+            return ret, processed_images
+        return ret, []
+    except Exception as e:
+        return False, []
