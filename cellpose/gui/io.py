@@ -588,7 +588,10 @@ def _save_features_csv(parent):
     # check if the dataset is 2D (NZ == 1 implies a single z-layer)
     if parent.NZ == 1:
         print("GUI_INFO: saving features to CSV file")
-        save_features_csv(parent.filename)
+        # this gives us the channels that are currently loaded
+        channels = [parent.ChannelChoose[0].currentText(), parent.ChannelChoose[1].currentText()]
+        # apparently not lol
+        save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")
 

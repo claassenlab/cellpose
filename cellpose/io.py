@@ -69,6 +69,9 @@ def logger_setup():
     return logger, log_file
 
 
+import numpy as np
+import csv
+
 from . import utils, plot, transforms
 
 
@@ -561,11 +564,13 @@ def masks_flows_to_seg(images, masks, flows, file_names, diams=30., channels=Non
 
     np.save(base + "_seg.npy", dat)
 
-def save_features_csv(file_name):
+def save_features_csv(file_name, cellpix, channels):
     """
     Save features to .csv file and remove if it already exists
     Args:
         file_name (str): Target CSV file name
+        cellpix: np.ndarray, the mask array where each cell has a unique ID.
+        channels: list of np.ndarray, the list of channel images.
 
     Returns:
         None
@@ -573,9 +578,53 @@ def save_features_csv(file_name):
     file_name = os.path.splitext(file_name)[0] + "_cp_features.csv"
     if os.path.exists(file_name):
         os.remove(file_name)
+
+        # Get unique cell ids (excluding background which is assumed to be 0)
+    cell_ids = np.unique(cellpix)
+    cell_ids = cell_ids[cell_ids != 0]
+
+    # Number of cells and channels
+    num_cells = len(cell_ids)
+    num_channels = len(channels)
+
+    # Initialize feature matrix
+    features = np.zeros((num_cells, num_channels))
+
+    # Calculate features for each cell and each channel
+    for i, cell_id in enumerate(cell_ids):
+        # Create a mask for the current cell
+        cell_mask = cellpix == cell_id
+
+        # Count the number of pixels in the current cell
+        num_pixels = np.sum(cell_mask)
+
+        # Skip the cell if it has no pixels
+        if num_pixels == 0:
+            continue
+
+        # Calculate the feature for each channel
+        for j in range(num_channels):
+            # Sum the marker intensities for the current cell in the current channel
+            marker_intensity_sum = np.sum(channels[j][cell_mask])
+
+            # Calculate the average marker intensity for the current cell in the current channel
+            features[i, j] = marker_intensity_sum / num_pixels
+
+    # Create row and column labels
+    row_labels = [f'cell {i + 1}' for i in range(num_cells)]
+    column_labels = [f'marker {j + 1}' for j in range(num_channels)]
+
+    # creating a csv file or clearing the existing one
     with open(file_name, mode='w', newline='') as f:
-        # creating an empty csv file or clearing the existing one
-        pass
+
+        writer = csv.writer(f)
+
+        # Write the header
+        writer.writerow([''] + column_labels)
+
+        # Write the data
+        for i, row_label in enumerate(row_labels):
+            writer.writerow([row_label] + list(features[i]))
 
 def save_to_png(images, masks, flows, file_names):
     """ deprecated (runs io.save_masks with png=True) 
