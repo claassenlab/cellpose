@@ -4,11 +4,12 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import sys, os, pathlib, warnings, datetime, time, copy
 
+from PIL import Image
 from qtpy import QtGui, QtCore
 from superqt import QRangeSlider, QCollapsible
 from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
 import pyqtgraph as pg
-from qtpy.QtGui import QIcon
+from qtpy.QtGui import QIcon, QColor
 
 import numpy as np
 from scipy.stats import mode
@@ -304,6 +305,11 @@ class MainW(QMainWindow):
         # if the view of the image is changed, the method onViewChanged is called
         self.p0.sigRangeChanged.connect(self.onViewChanged)
 
+        # Custom multi-page tiff image stack
+        self.grayscale_image_stack = []
+        self.colors_stack = []
+        self.colored_image_stack = []
+
         # if called with image, load it
         if image is not None:
             self.filename = image
@@ -352,6 +358,32 @@ class MainW(QMainWindow):
             if self.minimap_window_instance is not None:
                 self.minimap_window_instance.deleteLater()
                 self.minimap_window_instance = None
+
+    def color_initialization(self):
+        colors = [
+            (255, 0, 0),  # Red
+            (0, 255, 0),  # Green
+            (0, 0, 255),  # Blue
+            (255, 255, 0),  # Yellow
+            (255, 0, 255),  # Magenta
+            (0, 255, 255),  # Cyan
+            (255, 165, 0)  # Orange
+        ]
+        for i in range(len(self.grayscale_image_stack)):
+            self.colors_stack.append(colors[i % len(colors)])
+
+    def generate_color_image_stack(self):
+        for i in range(len(self.grayscale_image_stack)):
+            color = self.colors_stack[i]
+
+            alpha = self.grayscale_image_stack[i].getchannel("A")
+            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                 color)
+            colored_image = Image.merge(
+                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                         color_bg.getchannel("B"), alpha))
+            self.colored_image_stack.append(colored_image)
+
 
     def minimap_closed(self):
         """
@@ -502,7 +534,7 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-
+    
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []
