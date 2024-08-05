@@ -1121,15 +1121,19 @@ class MainW(QMainWindow):
                 """
 
     def level_change(self, r):
-        r = ["red", "green", "blue"].index(r)
-        if self.loaded:
-            sval = self.sliders[r].value()
-            self.saturation[r][self.currentZ] = sval
-            if not self.autobtn.isChecked():
-                for r in range(3):
-                    for i in range(len(self.saturation[r])):
-                        self.saturation[r][i] = self.saturation[r][self.currentZ]
-            self.update_plot()
+        if self.tiff_loaded:
+            print("ich bin ein tif")
+        else:
+            print("ich bin kein tif")
+            r = ["red", "green", "blue"].index(r)
+            if self.loaded:
+                sval = self.sliders[r].value()
+                self.saturation[r][self.currentZ] = sval
+                if not self.autobtn.isChecked():
+                    for r in range(3):
+                        for i in range(len(self.saturation[r])):
+                            self.saturation[r][i] = self.saturation[r][self.currentZ]
+                self.update_plot()
 
     def keyPressEvent(self, event):
         if self.loaded:
