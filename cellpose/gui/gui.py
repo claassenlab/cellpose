@@ -461,7 +461,7 @@ class MainW(QMainWindow):
         width = view_rect.width()
         height = view_rect.height()
 
-        if self.img.image is not None:
+        try:
 
             # Get the size of the image
             img_height = self.img.image.shape[0]
@@ -478,6 +478,11 @@ class MainW(QMainWindow):
             normalized_height = height / img_height
 
             return normalized_x, normalized_y, normalized_width, normalized_height
+
+        except Exception as e:
+
+            # if an exception of any kind occurs, the specific exception is printed to the console
+            print(f"An error occurred while changing the view: {e}")
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
