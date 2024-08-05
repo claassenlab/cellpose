@@ -448,13 +448,12 @@ class MinimapWindow(QDialog):
         # Add the viewbox to the image widget
         self.image_widget.addItem(self.viewbox)
 
-        # Create an instance of the HighlightArea class
-        self.highlight_area = HighlightArea(self.viewbox)
-        # Add the highlight area to the viewbox
-        self.viewbox.addItem(self.highlight_area)
-
         # This marks the menu button as checked
         parent.minimapWindow.setChecked(True)
+
+        # Update the creation of the highlight area in the MinimapWindow class
+        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3))
+        self.viewbox.addItem(self.highlight_area)
 
     def closeEvent(self, event: QEvent):
         """
@@ -505,6 +504,23 @@ class MinimapWindow(QDialog):
         # If there is no image and the minimap is checked, an empty window is opened
         else:
             self.setFixedSize(self.minimapSize, self.minimapSize)
+
+    def set_highlight_area(self, normalized_x, normalized_y, normalized_width, normalized_height):
+        """
+        Method to set the highlight area on the minimap.
+        """
+        if self.parent().img.image is not None:
+            img_height = self.parent().img.image.shape[0]
+            img_width = self.parent().img.image.shape[1]
+
+            x = normalized_x * img_width
+            y = normalized_y * img_height
+            width = normalized_width * img_width
+            height = normalized_height * img_height
+
+            self.highlight_area.setPos(x, y)
+            self.highlight_area.setSize([width, height])
+
 
     def sliderValueChanged(self, value):
         """
@@ -583,121 +599,6 @@ class MinimapWindow(QDialog):
 
             # Change the view in the main window to the clicked position
             self.parent().center_view_on_position(normalized_x, normalized_y)
-
-class HighlightArea(pg.GraphicsObject):
-    """
-    Initialize the HighlightArea object.
-
-    Parameters:
-    parent (QGraphicsItem): The parent item of this highlight area.
-                            This is typically the ViewBox that contains the minimap. If no parent is provided, the
-                            highlight area will not be associated with any specific parent item.
-    """
-    def __init__(self, parent=None):
-        super().__init__(parent)
-        # Set the default position and size of the highlight area (rectangle)
-        self.rect = QtCore.QRectF(50, 50, 100, 100)
-        # Make the highlight area movable by the user
-        self.setFlag(self.ItemIsMovable, True)
-        # Allow the highlight area to be selectable
-        self.setFlag(self.ItemIsSelectable, True)
-        # Ensure geometry changes (like moving or resizing) are sent to the parent item
-        self.setFlag(self.ItemSendsGeometryChanges, True)
-        # Disable hover events for this item
-        self.setAcceptHoverEvents(False)
-        # Ensure the highlight area is rendered on top of other items
-        self.setZValue(10)
-        # Initialize resizing attribute to False
-        self.resizing = False
-
-    def boundingRect(self):
-        # Return the bounding rectangle of the highlight area
-        return self.rect
-
-    def paint(self, painter, option, widget):
-        # Set the pen to draw a white outline with a thickness of 2 pixels
-        painter.setPen(QtGui.QPen(QtGui.QColor(255, 255, 255), 2))
-        # Draw the rectangle (highlight area) using the painter
-        painter.drawRect(self.rect)
-
-    def mousePressEvent(self, event):
-        """
-        Handle mouse press events.
-        If the left mouse button is pressed, it verifies if the highlight area has a parent item, saves the starting
-        position and size, checks if the click is within the resize area, and accepts the event.
-        For the right mouse button, the event is ignored.
-
-        Parameters:
-        event (QGraphicsSceneMouseEvent): The mouse event.
-        """
-        if event.button() == QtCore.Qt.LeftButton:
-            if self.parentItem() is None:
-                print("No target window")
-                return
-            # Save the starting position of the mouse click
-            self.startPos = event.pos()
-            # Save the starting position and size of the highlight area
-            self.startRect = self.rect
-            # Check if the mouse click is in the resize area
-            self.resizing = self.isInResizeArea(event.pos())
-            event.accept()
-        else:
-            event.ignore()
-
-    def mouseMoveEvent(self, event):
-        """
-        Handle mouse move events.
-        This method checks if the left mouse button is pressed and calculates the change in position.
-        If resizing, it adjusts the bottom-right corner of the rectangle.
-        If not resizing, it translates the entire highlight area.
-        The event is accepted if the left mouse button is pressed, otherwise it is ignored.
-
-        Parameters:
-        event (QGraphicsSceneMouseEvent): The mouse event.
-        """
-        # Check if the left mouse button is pressed
-        if event.buttons() == QtCore.Qt.LeftButton:
-            # Calculate the change in position
-            delta = event.pos() - self.startPos
-            # If resizing, adjust the bottom-right corner of the rectangle
-            if self.resizing:
-                newRect = QtCore.QRectF(self.startRect)
-                newRect.setBottomRight(newRect.bottomRight() + delta)
-                self.setRect(newRect)
-            else:
-                # If not resizing, translate the entire highlight area
-                newRect = self.startRect.translated(delta)
-                self.setRect(newRect)
-            # Accept the event
-            event.accept()
-        else:
-            # Ignore the event if the left mouse button is not pressed
-            event.ignore()
-
-    def isInResizeArea(self, pos):
-        """
-        Check if the position is in the resize area.
-
-        Parameters:
-        pos (QPointF): The position to check.
-
-        Returns:
-        bool: True if the position is in the resize area, False otherwise.
-        """
-        resizeArea = QtCore.QRectF(self.rect.bottomRight() - QtCore.QPointF(10, 10), self.rect.bottomRight())# ???
-        return resizeArea.contains(pos)
-
-    def setRect(self, rect):
-        # Cap the width and height to the dimensions of the minimap
-        minimap_width = self.parentItem().boundingRect().width()
-        minimap_height = self.parentItem().boundingRect().height()
-
-        # Ensure the rectangle does not exceed the minimap's dimensions
-        if rect.width() > minimap_width:
-            rect.setWidth(minimap_width)
-        if rect.height() > minimap_height:
-            rect.setHeight(minimap_height)
-
 
 class ViewBoxNoRightDrag(pg.ViewBox):
 
