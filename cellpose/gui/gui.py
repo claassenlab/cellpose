@@ -308,6 +308,17 @@ class MainW(QMainWindow):
         self.colors_stack = []
         self.colored_image_stack = []
 
+        self.colors_tif = [
+            "Red", "Green", "Blue", "Magenta", "Cyan"
+            
+            '''(255, 0, 0),  # Red
+                      (0, 255, 0),  # Green
+                      (0, 0, 255),  # Blue
+                      (255, 255, 0),  # Yellow
+                      (255, 0, 255),  # Magenta
+                      (0, 255, 255),  # Cyan
+                      (255, 165, 0)''']  # Orange]
+
         # if called with image, load it
         if image is not None:
             self.filename = image
@@ -357,22 +368,23 @@ class MainW(QMainWindow):
                 self.minimap_window_instance.deleteLater()
                 self.minimap_window_instance = None
 
+
+
     def color_initialization(self):
-        colors = [
-            (255, 0, 0),  # Red
-            (0, 255, 0),  # Green
-            (0, 0, 255),  # Blue
-            (255, 255, 0),  # Yellow
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Cyan
-            (255, 165, 0)  # Orange
-        ]
+        colors = [(255, 0, 0),  # Red
+                      (0, 255, 0),  # Green
+                      (0, 0, 255),  # Blue
+                      (255, 255, 0),  # Yellow
+                      (255, 0, 255),  # Magenta
+                      (0, 255, 255),  # Cyan
+                      (255, 165, 0)]
         self.colors_stack = []  # Ensure colors_stack is empty before initialization
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
         print("Initialized colors_stack:", self.colors_stack)  # Debug print
 
     def generate_color_image_stack(self):
+        self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
             color = self.colors_stack[i]
 
@@ -383,8 +395,10 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
+            colored_image.show()
+
+
             print(self.colors_stack[i])  # Debug print
-            self.colored_image_stack[i].show()
 
     def minimap_closed(self):
         """
@@ -445,7 +459,7 @@ class MainW(QMainWindow):
 
         self.sliders = []
         #self.colors_stack = [(255, 0, 0)] * n  # Default colors (red) for each channel
-        self.marker_buttons = [self.create_color_button("red", i) for i in range(n)]
+        self.marker_buttons = [self.create_color_button(self.colors_tif[i], i) for i in range(len(self.colors_tif))]
         self.on_off_buttons = [self.create_on_off_button() for i in range(n)]
 
         for r in range(n):
