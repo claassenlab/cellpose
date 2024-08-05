@@ -381,6 +381,16 @@ class MainW(QMainWindow):
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
 
+    def convert_images_to_array(self, images):
+        # Convert each image to a numpy array
+        arrays = [np.array(image) for image in images]
+
+        # Stack all image arrays along a new axis, creating a 4D array
+        # The new array will have shape (N, H, W, C) where:
+        # N is the number of images, H is height, W is width, C is channels (2 for LA)
+        stacked_array = np.stack(arrays, axis=0)
+
+        return stacked_array
 
     def minimap_closed(self):
         """

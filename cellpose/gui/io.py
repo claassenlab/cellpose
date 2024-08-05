@@ -587,6 +587,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
     else:
         parent.ViewDropDown.setCurrentIndex(0)
 
+
 def _save_features_csv(parent):
     """
     Saves features to CSV if dataset is 2D.
@@ -605,8 +606,11 @@ def _save_features_csv(parent):
     # check if the dataset is 2D (NZ == 1 implies a single z-layer)
     if parent.NZ == 1:
         print("GUI_INFO: saving features to CSV file")
-        # this gives us the channels that are currently loaded
-        channels = parent.grayscale_image_stack
+        # this gives us the channels that are currently loaded by converting the images to an array
+        stacked_images = parent.convert_images_to_array(parent.grayscale_image_stack)
+        # reduction to only the relevant light intensity channel
+        channels = stacked_images[:, :, :, 1]
+        print(channels)
         save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")
