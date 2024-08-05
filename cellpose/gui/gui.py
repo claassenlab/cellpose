@@ -1558,6 +1558,7 @@ class MainW(QMainWindow):
             io._save_sets_with_check(self)
 
         self.update_layer()
+        self.print_cellpix()
 
     def remove_single_cell(self, idx):
         # remove from manual array
