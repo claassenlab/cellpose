@@ -8,7 +8,6 @@ import numpy as np
 import cv2
 import tifffile
 import logging
-import imghdr
 import fastremap
 from PIL import Image, ImageSequence, ImageOps
 
@@ -171,8 +170,6 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
         else:
             parent.minimap_window_instance = guiparts.MinimapWindow(parent)
             parent.minimap_window_instance.show()
-
-        #parent.toggle_save_features_csv()
 
 
 def _initialize_images(parent, image, load_3D=False):
@@ -502,6 +499,7 @@ def _load_masks(parent, filename=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        # features can only be saved if masks are loaded
         parent.toggle_save_features_csv()
     del masks
     gc.collect()
@@ -582,6 +580,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        # features can only be saved if masks are loaded
         parent.toggle_save_features_csv()
     parent.ismanual = np.zeros(parent.ncells, bool)
     parent.zdraw = list(-1 * np.ones(parent.ncells, np.int16))

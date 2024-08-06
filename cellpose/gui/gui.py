@@ -14,6 +14,7 @@ from qtpy.QtGui import QIcon, QColor
 import numpy as np
 from scipy.stats import mode
 import cv2
+import imghdr
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -38,8 +39,6 @@ except:
     SERVER_UPLOAD = False
 
 Horizontal = QtCore.Qt.Orientation.Horizontal
-
-import imghdr
 
 
 class Slider(QRangeSlider):
