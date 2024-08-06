@@ -302,6 +302,9 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
+        # if the view of the image is changed, the method onViewChanged is called
+        self.p0.sigRangeChanged.connect(self.onViewChanged)
+
         # Custom multi-page tiff image stack
         self.grayscale_image_stack = []
         self.colors_stack = []
@@ -436,6 +439,50 @@ class MainW(QMainWindow):
         self.p0.setXRange(*new_x_range, padding=0)
         self.p0.setYRange(*new_y_range, padding=0)
 
+    def onViewChanged(self):
+        """
+        This function is called whenever the view of the image in the view box is changed.
+        This includes it being zoomed in or zoomed out, as well as it being moved around.
+        It normalizes coordinates and dimensions of the view box in relation to the current image.
+
+        Returns:
+            Normalized coordinates of the view box (normalized_x, normalized_y)
+            Normalized dimensions of the view box (normalized_width, normalized_height)
+        """
+
+        # Access the positional values of the view box p0 in form of a rectangle using viewRect()
+        view_rect = self.p0.viewRect()
+
+        # Extract the x and y coordinates of the view box
+        x_coordinates = [view_rect.left(), view_rect.right()]
+        y_coordinates = [view_rect.top(), view_rect.bottom()]
+
+        # Extract the dimensions of the view box
+        width = view_rect.width()
+        height = view_rect.height()
+
+        try:
+
+            # Get the size of the image
+            img_height = self.img.image.shape[0]
+            img_width = self.img.image.shape[1]
+
+            # Calculate the normalized coordinates in relation to the image size
+            normalized_x = tuple(
+                coordinate / img_width for coordinate in x_coordinates)
+            normalized_y = tuple(
+                coordinate / img_height for coordinate in y_coordinates)
+
+            # Calculate the normalized dimensions
+            normalized_width = width / img_width
+            normalized_height = height / img_height
+
+            return normalized_x, normalized_y, normalized_width, normalized_height
+
+        except Exception as e:
+
+            # if an exception of any kind occurs, the specific exception is printed to the console
+            print(f"An error occurred while changing the view: {e}")
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -492,7 +539,7 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-
+    
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []
