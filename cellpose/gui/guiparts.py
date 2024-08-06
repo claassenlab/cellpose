@@ -453,7 +453,10 @@ class MinimapWindow(QDialog):
 
         # Create and add a highlight rectangle to the minimap with initial position [0, 0] and size [100, 100], outlined
         # in white with a 3-pixel width.
-        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3))
+        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False)
+        # Remove all resize handles after initialization
+        QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
+                                             self.highlight_area.getHandles()])
         # Add the highlight area to the viewbox
         self.viewbox.addItem(self.highlight_area)
 
