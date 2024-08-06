@@ -571,8 +571,8 @@ def save_features_csv(file_name, cellpix, channels):
 
     Args:
         file_name (str): Target CSV file name
-        cellpix: np.ndarray, the mask array where each cell has a unique ID
-        channels: list of np.ndarray, the list of channel images
+        cellpix (np.ndarray): Mask array where each cell has a unique ID
+        channels (ist of np.ndarray): List of channel images
 
     Returns:
         None
