@@ -306,7 +306,11 @@ class MainW(QMainWindow):
         self.grayscale_image_stack = []
         self.colors_stack = []
         self.colored_image_stack = []
+        self.final_stack_replacement_rgb = []
 
+
+
+        self.combined_image = None
         # if called with image, load it
         if image is not None:
             self.filename = image
@@ -328,6 +332,43 @@ class MainW(QMainWindow):
         self.setAcceptDrops(True)
         self.win.show()
         self.show()
+
+    def generate_rgb_image(self):
+        self.combine_images()
+
+
+
+    def combine_images(self):
+        """
+        Combine a list of images by overlaying them, with a black background as the first layer.
+
+        Returns:
+            Image: The combined RGBA image.
+        """
+        if not self.colored_image_stack:
+            raise ValueError("No images in the stack to combine.")
+
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size,
+                                     (0, 0, 0, 255))
+
+        # Start with the black background
+        base_image = black_background
+
+        for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
+            base_image = Image.alpha_composite(base_image, image)
+
+        base_image = base_image.convert('RGB')
+        # Convert the base image to a NumPy array
+        base_image = np.array(base_image)
+        self.combined_image = np.array(base_image)
+
+
+
 
     def help_window(self):
         HW = guiparts.HelpWindow(self)
@@ -370,6 +411,7 @@ class MainW(QMainWindow):
             self.colors_stack.append(colors[i % len(colors)])
 
     def generate_color_image_stack(self):
+        self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
             color = self.colors_stack[i]
 
@@ -380,6 +422,8 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
+        self.generate_rgb_image()
+
 
 
     def minimap_closed(self):
@@ -1814,6 +1858,7 @@ class MainW(QMainWindow):
         self.update_plot()
 
     def update_plot(self):
+        self.generate_rgb_image()
         self.view = self.ViewDropDown.currentIndex()
         self.Ly, self.Lx, _ = self.stack[self.currentZ].shape
 
@@ -1832,8 +1877,7 @@ class MainW(QMainWindow):
             self.update_layer()
 
         if self.view == 0 or self.view == self.ViewDropDown.count() - 1:
-            image = self.stack[
-                self.currentZ] if self.view == 0 else self.stack_filtered[self.currentZ]
+            image = self.combined_image if self.view == 0 else self.stack_filtered[self.currentZ]
             if self.nchan == 1:
                 # show single channel
                 image = image[..., 0]
