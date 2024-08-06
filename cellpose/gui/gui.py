@@ -382,12 +382,20 @@ class MainW(QMainWindow):
             self.colored_image_stack.append(colored_image)
 
     def convert_images_to_array(self, images):
+        """
+        Convert a list of PIL images to a numpy array.
+        This gives us a stacked four-dimensional array with that shape shape (N, H, W, C).
+        N is the number of images, H is height, W is width, C is channels (2 for LA).
+        This makes it easier to extract information about the channels later on.
+        Args:
+            images (list): A list of PIL images.
+        Returns:
+            np.ndarray: A stacked four-dimensional array of the images.
+        """
         # Convert each image to a numpy array
         arrays = [np.array(image) for image in images]
 
         # Stack all image arrays along a new axis, creating a 4D array
-        # The new array will have shape (N, H, W, C) where:
-        # N is the number of images, H is height, W is width, C is channels (2 for LA)
         stacked_array = np.stack(arrays, axis=0)
 
         return stacked_array

@@ -610,6 +610,7 @@ def _save_features_csv(parent):
         stacked_images = parent.convert_images_to_array(parent.grayscale_image_stack)
         # reduction to only the relevant light intensity channel
         channels = stacked_images[:, :, :, 1]
+        # save the features to a CSV file using method in cellpose.io
         save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")
