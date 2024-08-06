@@ -610,7 +610,6 @@ def _save_features_csv(parent):
         stacked_images = parent.convert_images_to_array(parent.grayscale_image_stack)
         # reduction to only the relevant light intensity channel
         channels = stacked_images[:, :, :, 1]
-        print(channels)
         save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")

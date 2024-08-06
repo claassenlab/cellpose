@@ -594,6 +594,7 @@ def save_features_csv(file_name, cellpix, channels):
     for i, cell_id in enumerate(cell_ids):
         # Create a mask for the current cell
         cell_mask = cellpix == cell_id
+        # Returns a boolean matrix indicating the location of the current cell
 
         # Count the number of pixels in the current cell
         num_pixels = np.sum(cell_mask)
@@ -606,8 +607,7 @@ def save_features_csv(file_name, cellpix, channels):
         for j in range(num_channels):
 
             # Sum the marker intensities for the current cell in the current channel
-            marker_intensity_sum = np.sum(channels[j][cell_mask])
-            # has to be fixed yet
+            marker_intensity_sum = np.sum(channels[j] * cell_mask)
 
             # Calculate the average marker intensity for the current cell in the current channel
             features[i, j] = marker_intensity_sum / num_pixels
