@@ -117,6 +117,9 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
         if successful_import:
             parent.grayscale_image_stack = grayscale_image_stack
 
+            for i in range(len(parent.grayscale_image_stack)):
+                parent.opacity_stack[i] = 255
+
             # Initialize the colors and colored_image_stack attributes
             parent.color_initialization()
             parent.generate_color_image_stack()

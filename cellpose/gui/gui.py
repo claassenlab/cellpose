@@ -308,6 +308,7 @@ class MainW(QMainWindow):
         self.colors_stack = []
         self.colored_image_stack = []
         self.combined_image = []
+        self.opacity_stack = []
 
         self.colors_tif = [
             "Red", "Green", "Blue", "Magenta", "Cyan"
