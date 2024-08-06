@@ -388,9 +388,6 @@ class MainW(QMainWindow):
             self.colors_stack.append(colors[i % len(colors)])
 
     def initialize_color_image_stack(self):
-        """
-        Initialize the colored_image_stack attribute by creating colored images based on the grayscale images stack and the colors.
-        """
         self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
             color = self.colors_stack[i]
@@ -402,8 +399,7 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-            print("color image aufgerufen")
-            colored_image.show()
+        self.combine_images()
 
 
     def generate_color_image_stack(self):
@@ -455,7 +451,10 @@ class MainW(QMainWindow):
             # Overlay the image on the base image
             base_image = Image.alpha_composite(base_image, image)
 
-        self.combined_image = base_image
+        base_image = base_image.convert('RGB')
+        # Convert the base image to a NumPy array
+        base_image = np.array(base_image)
+        self.combined_image = np.array(base_image)
 
 
     def minimap_closed(self):
@@ -514,42 +513,81 @@ class MainW(QMainWindow):
 
 
     def generate_multi_channel_ui(self, n):
-        c = 0  # position of the elements in the right side menu
+        """c = 0  # position of the elements in the right side menu
 
         self.sliders = []
-        #self.colors_stack = [(255, 0, 0)] * n  # Default colors (red) for each channel
-        self.marker_buttons = [self.create_color_button(self.colors_tif[i], i) for i in range(len(self.colors_tif))]
-        self.on_off_buttons = [self.create_on_off_button() for i in range(n)]
+        # ---Create a list (extendable) of color/on-off buttons  ---#
+        colors = ["red", "green", "blue"]
+        self.marker_buttons = [self.create_color_button(color, None) for color in colors]
+        self.on_off_buttons = [self.create_on_off_button() for color in colors]
 
-        for r in range(n):
+        for r in range(3):
             c += 1
 
             label = QLabel(f'Marker {r + 1}')  # create a label for each marker
             color_button = self.marker_buttons[r]  # get the corresponding color button
+            self.marker_buttons = [self.create_color_button(color, None) for color in colors]
             on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
             label.setStyleSheet("color: white")
             label.setFont(self.boldmedfont)
             self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
             self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
             self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
-            # Create the slider with a unique name
-            slider_name = f"channel_{r}"
-            slider_color = self.colors_tif[r % len(
-                self.colors_tif
-            )]  # Use modulo to cycle through colors if needed
-            slider = Slider(self, slider_name, slider_color)
-            slider.setMinimum(-.1)
-            slider.setMaximum(255.1)
-            slider.setValue([0, 255])
-            slider.setToolTip(
+            self.sliders.append(Slider(self, colors[r], None))
+            self.sliders[-1].setMinimum(-.1)
+            self.sliders[-1].setMaximum(255.1)
+            self.sliders[-1].setValue([0, 255])
+            self.sliders[-1].setToolTip(
                 "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
             )
 
-            slider.setFixedWidth(250)
-            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
-            self.sliders.append(slider)
+            self.sliders[-1].setFixedWidth(250)
+            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
+            stretch_widget = QWidget()
+            self.rightBoxLayout.addWidget(stretch_widget)"""
+        c = 0  # Position der Elemente im Layout
+
+        # Erstelle Buttons vor der Schleife
+        self.sliders = []
+        self.marker_buttons = [self.create_color_button(self.colors_tif[r % len(self.colors_tif)], r) for r in range(n)]
+        self.on_off_buttons = [self.create_on_off_button() for _ in range(n)]
+
+        for r in range(n):
+            c += 1
+
+            # Erstelle Label für jeden Marker
+            label = QLabel(f'Marker {r + 1}')
+
+            color_button = self.marker_buttons[r]  # Hol den entsprechenden Farb-Button
+            on_off_button = self.on_off_buttons[r]  # Hol den entsprechenden On/Off-Button
+
+
+            label.setStyleSheet("color: white")
+            label.setFont(self.boldmedfont)
+
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # Füge den Farb-Button zum Layout hinzu
+            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # Füge den On/Off-Button zum Layout hinzu
+
+            # Erstelle und füge den Slider hinzu
+            slider_name = r
+            slider_color = self.colors_tif[r % len(self.colors_tif)]
+
+            self.sliders.append(Slider(self, slider_name,slider_color))
+            self.sliders[-1].setMinimum(-.1)
+            self.sliders[-1].setMaximum(255.1)
+            self.sliders[-1].setValue([0, 255])
+            self.sliders[-1].setToolTip(
+                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
+            )
+
+            self.sliders[-1].setFixedWidth(250)
+            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
             stretch_widget = QWidget()
             self.rightBoxLayout.addWidget(stretch_widget)
+
+
+
 
 
 
@@ -1164,9 +1202,9 @@ class MainW(QMainWindow):
                 print(f'Updated color at index {index}: {self.colors_stack[index]}')  # Debug print
                 self.generate_color_image_stack()
                 self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
-                self.colored_image_stack[index].show()
+                #self.colored_image_stack[index].show()
                 self.combine_images()
-                self.combined_image.show()
+                #self.combined_image.show()
 
 
     def get_color_button_style(self, color_name):
@@ -1241,16 +1279,16 @@ class MainW(QMainWindow):
         self.colored_image_stack[channel] = self.adjust_contrast(
             self.colored_image_stack[channel], lower_bound, upper_bound)
         self.combine_images()
-        self.combined_image.show()
         # Update the display
 
 
     def level_change(self, r):
         if self.tiff_loaded:
             print("ich bin ein tif")
-            r_index = [slider.name for slider in self.sliders].index(r)
-            print(f"Slider {r} value: {self.sliders[r_index].value()}")
-            self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+            if int(r) < len(self.sliders):
+                r_index = r
+                print(f"Slider {r} value: {self.sliders[r_index].value()}")
+                self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
 
         else:
             print("ich bin kein tif")
@@ -2006,8 +2044,10 @@ class MainW(QMainWindow):
         self.update_plot()
 
     def update_plot(self):
+        self.combine_images()
         self.view = self.ViewDropDown.currentIndex()
-        self.Ly, self.Lx, _ = self.stack[self.currentZ].shape
+        self.Ly, self.Lx, _ = self.combined_image.shape
+
 
         if self.restore and "upsample" in self.restore:
             if self.view != 0:
@@ -2024,8 +2064,7 @@ class MainW(QMainWindow):
             self.update_layer()
 
         if self.view == 0 or self.view == self.ViewDropDown.count() - 1:
-            image = self.stack[
-                self.currentZ] if self.view == 0 else self.stack_filtered[self.currentZ]
+            image = self.combined_image if self.view == 0 else self.stack_filtered[self.currentZ]
             if self.nchan == 1:
                 # show single channel
                 image = image[..., 0]
