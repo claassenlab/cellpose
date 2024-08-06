@@ -451,8 +451,10 @@ class MinimapWindow(QDialog):
         # This marks the menu button as checked
         parent.minimapWindow.setChecked(True)
 
-        # Update the creation of the highlight area in the MinimapWindow class
+        # Create and add a highlight rectangle to the minimap with initial position [0, 0] and size [100, 100], outlined
+        # in white with a 3-pixel width.
         self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3))
+        # Add the highlight area to the viewbox
         self.viewbox.addItem(self.highlight_area)
 
     def closeEvent(self, event: QEvent):
@@ -537,11 +539,15 @@ class MinimapWindow(QDialog):
             if y + height > img_height:
                 height = img_height - y
 
-            # Set the position of the highlight area on the minimap
+            # Set the position of the rectangle  area on the minimap
+            # Move the rectangle to the calculated position
             self.highlight_area.setPos(x, y)
-            # Set the size of the highlight area on the minimap
+
+            # Set the size of the rectangle on the minimap
+            # Adjust the rectangle's size to the calculated width and height
             self.highlight_area.setSize([width, height])
 
+            # Return the calculated coordinates and dimensions of the rectangle
             return x, y, width, height
 
 
