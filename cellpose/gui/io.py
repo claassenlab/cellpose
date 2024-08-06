@@ -134,7 +134,7 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
 
                 # Initialize the colors and colored_image_stack attributes
                 parent.color_initialization()
-                parent.generate_color_image_stack()
+                parent.initialize_color_image_stack()
 
                 # Initialize the Buttons and sliders
                 # parent.generate_multi_channel_ui()

@@ -302,6 +302,9 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
+        # if the view of the image is changed, the method onViewChanged is called
+        self.p0.sigRangeChanged.connect(self.onViewChanged)
+
         # Custom multi-page tiff image stack
         self.grayscale_image_stack = []
         self.colors_stack = []
@@ -332,10 +335,6 @@ class MainW(QMainWindow):
         self.setAcceptDrops(True)
         self.win.show()
         self.show()
-
-    def generate_rgb_image(self):
-        self.combine_images()
-
 
 
     def combine_images(self):
@@ -411,6 +410,8 @@ class MainW(QMainWindow):
             self.colors_stack.append(colors[i % len(colors)])
 
     def generate_color_image_stack(self):
+        pass
+    def initialize_color_image_stack(self):
         self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
             color = self.colors_stack[i]
@@ -422,8 +423,7 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-        self.generate_rgb_image()
-
+        self.combine_images()
 
 
     def minimap_closed(self):
@@ -1858,9 +1858,9 @@ class MainW(QMainWindow):
         self.update_plot()
 
     def update_plot(self):
-        self.generate_rgb_image()
+        self.combine_images()
         self.view = self.ViewDropDown.currentIndex()
-        self.Ly, self.Lx, _ = self.stack[self.currentZ].shape
+        self.Ly, self.Lx, _ = self.combined_image.shape
 
         if self.restore and "upsample" in self.restore:
             if self.view != 0:
