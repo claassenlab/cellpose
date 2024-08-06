@@ -535,8 +535,10 @@ class MinimapWindow(QDialog):
 
             # Ensure the highlight area does not exceed the boundaries of the minimap
             if x + width > img_width:
+                print("Error: Highlight area width exceeds image width.")
                 width = img_width - x
             if y + height > img_height:
+                print("Error: Highlight area height exceeds image height.")
                 height = img_height - y
 
             # Set the position of the rectangle  area on the minimap
@@ -549,6 +551,8 @@ class MinimapWindow(QDialog):
 
             # Return the calculated coordinates and dimensions of the rectangle
             return x, y, width, height
+        else:
+            print("Error: No image loaded in parent.")
 
 
     def sliderValueChanged(self, value):
