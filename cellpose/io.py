@@ -69,8 +69,6 @@ def logger_setup():
     return logger, log_file
 
 
-import numpy as np
-import csv
 
 from . import utils, plot, transforms
 
@@ -566,11 +564,15 @@ def masks_flows_to_seg(images, masks, flows, file_names, diams=30., channels=Non
 
 def save_features_csv(file_name, cellpix, channels):
     """
-    Save features to .csv file and remove if it already exists
+    This method saves the features of a segmentation to .csv file and replaces the old one if it exists.
+    It is saved in the folder containing the current image.
+    The features are the average marker intensity for each cell in each channel.
+    They are calculates in form of a matrix: Rows represent cells, columns represent channels.
+
     Args:
         file_name (str): Target CSV file name
-        cellpix: np.ndarray, the mask array where each cell has a unique ID.
-        channels: list of np.ndarray, the list of channel images.
+        cellpix: np.ndarray, the mask array where each cell has a unique ID
+        channels: list of np.ndarray, the list of channel images
 
     Returns:
         None

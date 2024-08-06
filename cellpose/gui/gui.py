@@ -1309,6 +1309,11 @@ class MainW(QMainWindow):
             self.saveROIs.setEnabled(False)
 
     def toggle_save_features_csv(self):
+        """
+        Toggles the save features csv button based on the image file type.
+        If the image is a tiff or tif file, the button is enabled. Otherwise, it is disabled.
+        This method is called after a segmentation has taken place.
+        """
 
         filetype = imghdr.what(self.filename)
 
