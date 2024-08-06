@@ -373,6 +373,9 @@ class MainW(QMainWindow):
 
 
     def color_initialization(self):
+        """
+        Initializes the color stack by assigning every layer a standard color by repeating colors in the list.
+        """
         colors = [(255, 0, 0),  # Red
                       (0, 255, 0),  # Green
                       (0, 0, 255),  # Blue
@@ -383,9 +386,11 @@ class MainW(QMainWindow):
         self.colors_stack = []  # Ensure colors_stack is empty before initialization
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
-        print("Initialized colors_stack:", self.colors_stack)  # Debug print
 
-    def generate_color_image_stack(self):
+    def initialize_color_image_stack(self):
+        """
+        Initialize the colored_image_stack attribute by creating colored images based on the grayscale images stack and the colors.
+        """
         self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
             color = self.colors_stack[i]
@@ -401,7 +406,28 @@ class MainW(QMainWindow):
             colored_image.show()
 
 
-            print(self.colors_stack[i])  # Debug print
+    def generate_color_image_stack(self):
+        """
+        Generate a color image stack by overlaying the grayscale images with the corresponding colors from the colors stack.
+
+        This function iterates over the grayscale image stack and the colors stack simultaneously. For each pair of grayscale image and color, it creates a new RGBA image by overlaying the grayscale image with the color. The alpha channel of the grayscale image is used as the transparency level for the overlay. The resulting colored image is then assigned to the corresponding position in the colored image stack.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
+        for i in range(len(self.colored_image_stack)):
+            alpha = self.grayscale_image_stack[i].getchannel("A")
+            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                 self.colors_stack[i])
+            colored_image = Image.merge(
+                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                         color_bg.getchannel("B"), alpha))
+            self.colored_image_stack[i] = colored_image
+
+
 
     from PIL import Image
 
