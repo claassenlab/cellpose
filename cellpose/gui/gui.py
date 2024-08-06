@@ -388,8 +388,10 @@ class MainW(QMainWindow):
         This gives us a stacked four-dimensional array with that shape shape (N, H, W, C).
         N is the number of images, H is height, W is width, C is channels (2 for LA).
         This makes it easier to extract information about the channels later on.
+
         Args:
             images (list): A list of PIL images.
+
         Returns:
             np.ndarray: A stacked four-dimensional array of the images.
         """
@@ -1313,6 +1315,12 @@ class MainW(QMainWindow):
         Toggles the save features csv button based on the image file type.
         If the image is a tiff or tif file, the button is enabled. Otherwise, it is disabled.
         This method is called after a segmentation has taken place.
+
+        Args:
+            None
+
+        Returns:
+            None
         """
 
         filetype = imghdr.what(self.filename)
