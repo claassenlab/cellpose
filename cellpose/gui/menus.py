@@ -86,7 +86,7 @@ def mainmenu(parent):
     parent.saveFeaturesCsv.setShortcut("Ctrl+Shift+C")
     parent.saveFeaturesCsv.triggered.connect(lambda: io._save_features_csv(parent))
     file_menu.addAction(parent.saveFeaturesCsv)
-    parent.saveFeaturesCsv.setEnabled(True)
+    parent.saveFeaturesCsv.setEnabled(False)
 
     """
     This creates a new menu item for the minimap that the user can activate.

@@ -39,6 +39,8 @@ except:
 
 Horizontal = QtCore.Qt.Orientation.Horizontal
 
+import imghdr
+
 
 class Slider(QRangeSlider):
 
@@ -1278,6 +1280,7 @@ class MainW(QMainWindow):
         self.saveSet.setEnabled(False)
         self.savePNG.setEnabled(False)
         self.saveFlows.setEnabled(False)
+        self.saveFeaturesCsv.setEnabled(False)
         self.saveOutlines.setEnabled(False)
         self.saveROIs.setEnabled(False)
         self.minimapWindow.setEnabled(False)
@@ -1305,6 +1308,9 @@ class MainW(QMainWindow):
             self.saveFlows.setEnabled(False)
             self.saveOutlines.setEnabled(False)
             self.saveROIs.setEnabled(False)
+
+    def toggle_save_features_csv(self):
+        self.saveFeaturesCsv.setEnabled(True)
 
     def toggle_removals(self):
         if self.ncells > 0:

@@ -8,6 +8,7 @@ import numpy as np
 import cv2
 import tifffile
 import logging
+import imghdr
 import fastremap
 from PIL import Image, ImageSequence, ImageOps
 
@@ -602,7 +603,12 @@ def _save_features_csv(parent):
         return
 
     filename = parent.filename
+
+    if filename.lower().endswith(('.tif', '.tiff')):
+        parent.toggle_save_features_csv()
+
     base = os.path.splitext(filename)[0] + "_features.csv"
+
     # check if the dataset is 2D (NZ == 1 implies a single z-layer)
     if parent.NZ == 1:
         print("GUI_INFO: saving features to CSV file")
