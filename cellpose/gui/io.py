@@ -172,6 +172,8 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             parent.minimap_window_instance = guiparts.MinimapWindow(parent)
             parent.minimap_window_instance.show()
 
+        #parent.toggle_save_features_csv()
+
 
 def _initialize_images(parent, image, load_3D=False):
     """ format image for GUI """
@@ -500,6 +502,7 @@ def _load_masks(parent, filename=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        parent.toggle_save_features_csv()
     del masks
     gc.collect()
     parent.update_layer()
@@ -579,6 +582,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        parent.toggle_save_features_csv()
     parent.ismanual = np.zeros(parent.ncells, bool)
     parent.zdraw = list(-1 * np.ones(parent.ncells, np.int16))
 
@@ -603,9 +607,6 @@ def _save_features_csv(parent):
         return
 
     filename = parent.filename
-
-    if filename.lower().endswith(('.tif', '.tiff')):
-        parent.toggle_save_features_csv()
 
     base = os.path.splitext(filename)[0] + "_features.csv"
 

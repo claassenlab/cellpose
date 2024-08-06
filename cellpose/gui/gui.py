@@ -1310,7 +1310,13 @@ class MainW(QMainWindow):
             self.saveROIs.setEnabled(False)
 
     def toggle_save_features_csv(self):
-        self.saveFeaturesCsv.setEnabled(True)
+
+        filetype = imghdr.what(self.filename)
+
+        if filetype in ['tiff', 'tif']:
+            self.saveFeaturesCsv.setEnabled(True)
+        else:
+            self.saveFeaturesCsv.setEnabled(False)
 
     def toggle_removals(self):
         if self.ncells > 0:
