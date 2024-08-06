@@ -508,18 +508,41 @@ class MinimapWindow(QDialog):
     def set_highlight_area(self, normalized_x, normalized_y, normalized_width, normalized_height):
         """
         Method to set the highlight area on the minimap.
+        The position and size of the rectangle are set based on the calculated normalized coordinates from the on_view method.
+
+        Parameters:
+        normalized_x (float): Normalized x-coordinate for the position.
+        normalized_y (float): Normalized y-coordinate for the position.
+        normalized_width (float): Normalized width for the size.
+        normalized_height (float): Normalized height for the size.
+
+        Returns:
+        tuple: The calculated (x, y, width, height) coordinates.
         """
+
         if self.parent().img.image is not None:
+            # Retrieve the height and width of the image
             img_height = self.parent().img.image.shape[0]
             img_width = self.parent().img.image.shape[1]
 
+            # Calculate the position and size of the highlight area based on the normalized coordinates
             x = normalized_x * img_width
             y = normalized_y * img_height
             width = normalized_width * img_width
             height = normalized_height * img_height
 
+            # Ensure the highlight area does not exceed the boundaries of the minimap
+            if x + width > img_width:
+                width = img_width - x
+            if y + height > img_height:
+                height = img_height - y
+
+            # Set the position of the highlight area on the minimap
             self.highlight_area.setPos(x, y)
+            # Set the size of the highlight area on the minimap
             self.highlight_area.setSize([width, height])
+
+            return x, y, width, height
 
 
     def sliderValueChanged(self, value):
