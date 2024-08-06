@@ -403,7 +403,7 @@ class MainW(QMainWindow):
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
             print("color image aufgerufen")
-            colored_image.show()
+            # colored_image.show()
 
 
     def generate_color_image_stack(self):
@@ -533,7 +533,7 @@ class MainW(QMainWindow):
             self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
             self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
             # Create the slider with a unique name
-            slider_name = f"channel_{r}"
+            slider_name = r
             slider_color = self.colors_tif[r % len(
                 self.colors_tif
             )]  # Use modulo to cycle through colors if needed
@@ -1217,6 +1217,22 @@ class MainW(QMainWindow):
         # Merge the channels back into an RGBA image
         return Image.merge("RGBA", (r, g, b, new_alpha))
 
+    def set_image_opacity(self, image, opacity):
+        # Ensure the image is in RGBA mode
+        if image.mode != 'RGBA':
+            image = image.convert('RGBA')
+
+        # Split the image into its R, G, B, and A components
+        r, g, b, a = image.split()
+
+        # Modify the alpha channel based on the opacity input
+        new_alpha = a.point(lambda p: int(p * opacity / 255))
+
+        # Recombine the image with the new alpha channel
+        new_image = Image.merge('RGBA', (r, g, b, new_alpha))
+
+        return new_image
+
     def adjust_contrast(self, image, lower_bound, upper_bound):
         image_np = np.array(image, dtype=np.float32)
         clipped_np = np.clip(
@@ -1240,6 +1256,9 @@ class MainW(QMainWindow):
         # Adjust the alpha channel of the specified image
         self.colored_image_stack[channel] = self.adjust_contrast(
             self.colored_image_stack[channel], lower_bound, upper_bound)
+        print(len(self.opacity_stack))
+        #self.colored_image_stack[channel] = self.set_image_opacity(
+        #    self.colored_image_stack[channel], self.grayscale_image_stack[channel])
         self.combine_images()
         self.combined_image.show()
         # Update the display
@@ -1248,9 +1267,12 @@ class MainW(QMainWindow):
     def level_change(self, r):
         if self.tiff_loaded:
             print("ich bin ein tif")
-            r_index = [slider.name for slider in self.sliders].index(r)
-            print(f"Slider {r} value: {self.sliders[r_index].value()}")
-            self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+            if len(self.sliders) > r:
+                r_index = r
+                print("slider name " + str(r))
+                print("slider array " + str(len(self.sliders)))
+                print(f"Slider {r} value: {self.sliders[r_index].value()}")
+                self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
 
         else:
             print("ich bin kein tif")
