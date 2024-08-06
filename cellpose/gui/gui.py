@@ -307,10 +307,11 @@ class MainW(QMainWindow):
         self.grayscale_image_stack = []
         self.colors_stack = []
         self.colored_image_stack = []
+        self.combined_image = []
 
         self.colors_tif = [
             "Red", "Green", "Blue", "Magenta", "Cyan"
-            
+
             '''(255, 0, 0),  # Red
                       (0, 255, 0),  # Green
                       (0, 0, 255),  # Blue
@@ -395,10 +396,40 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
+            print("color image aufgerufen")
             colored_image.show()
 
 
             print(self.colors_stack[i])  # Debug print
+
+    from PIL import Image
+
+    def combine_images(self):
+        """
+        Combine a list of images by overlaying them, with a black background as the first layer.
+
+        Returns:
+            Image: The combined RGBA image.
+        """
+        if not self.colored_image_stack:
+            raise ValueError("No images in the stack to combine.")
+
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size,
+                                     (0, 0, 0, 255))
+
+        # Start with the black background
+        base_image = black_background
+
+        for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
+            base_image = Image.alpha_composite(base_image, image)
+
+        self.combined_image = base_image
+
 
     def minimap_closed(self):
         """
@@ -454,6 +485,7 @@ class MainW(QMainWindow):
         self.p0.setXRange(*new_x_range, padding=0)
         self.p0.setYRange(*new_y_range, padding=0)
 
+
     def generate_multi_channel_ui(self, n):
         c = 0  # position of the elements in the right side menu
 
@@ -473,18 +505,26 @@ class MainW(QMainWindow):
             self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
             self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
             self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
-            self.sliders.append(Slider(self, "blue", None))
-            self.sliders[-1].setMinimum(-.1)
-            self.sliders[-1].setMaximum(255.1)
-            self.sliders[-1].setValue([0, 255])
-            self.sliders[-1].setToolTip(
+            # Create the slider with a unique name
+            slider_name = f"channel_{r}"
+            slider_color = self.colors_tif[r % len(
+                self.colors_tif
+            )]  # Use modulo to cycle through colors if needed
+            slider = Slider(self, slider_name, slider_color)
+            slider.setMinimum(-.1)
+            slider.setMaximum(255.1)
+            slider.setValue([0, 255])
+            slider.setToolTip(
                 "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
             )
 
-            self.sliders[-1].setFixedWidth(250)
-            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
+            slider.setFixedWidth(250)
+            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
+            self.sliders.append(slider)
             stretch_widget = QWidget()
             self.rightBoxLayout.addWidget(stretch_widget)
+
+
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -1098,6 +1138,8 @@ class MainW(QMainWindow):
                 self.generate_color_image_stack()
                 self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
                 self.colored_image_stack[index].show()
+                self.combine_images()
+                self.combined_image.show()
 
 
     def get_color_button_style(self, color_name):
@@ -1120,9 +1162,69 @@ class MainW(QMainWindow):
                 }}
                 """
 
+    def adjust_alpha(self, image, lower_bound, upper_bound):
+        """
+        Adjust the alpha channel of the given image based on the provided bounds.
+
+        Args:
+            image (Image): The RGBA image to adjust.
+            lower_bound (int): The lower bound for the alpha channel.
+            upper_bound (int): The upper bound for the alpha channel.
+
+        Returns:
+            Image: The adjusted RGBA image.
+        """
+        # Split the image into its component channels
+        r, g, b, a = image.split()
+
+        # Convert the alpha channel to numpy array for manipulation
+        a_np = np.array(a, dtype=np.float32)
+
+        # Normalize and adjust alpha values based on bounds
+        a_np = (a_np - lower_bound) / (upper_bound - lower_bound) * 255
+        a_np = np.clip(a_np, 0, 255).astype(np.uint8)
+
+        # Create new alpha channel
+        new_alpha = Image.fromarray(a_np)
+
+        # Merge the channels back into an RGBA image
+        return Image.merge("RGBA", (r, g, b, new_alpha))
+
+    def adjust_contrast(self, image, lower_bound, upper_bound):
+        image_np = np.array(image, dtype=np.float32)
+        clipped_np = np.clip(
+            (image_np - lower_bound) / (upper_bound - lower_bound) * 255, 0,
+            255)
+        return Image.fromarray(clipped_np.astype(np.uint8))
+
+    def adjust_channel_bounds(self, channel, bounds):
+        """
+        Adjust the alpha channel of the specified channel based on the slider values.
+
+        Args:
+            channel (int): The index of the channel to adjust.
+            bounds (tuple): A tuple of (lower_bound, upper_bound) for the alpha adjustment.
+        """
+        lower_bound, upper_bound = bounds
+        print(
+            f"Adjusting channel {channel} to bounds {lower_bound} - {upper_bound}"
+        )
+
+        # Adjust the alpha channel of the specified image
+        self.colored_image_stack[channel] = self.adjust_contrast(
+            self.colored_image_stack[channel], lower_bound, upper_bound)
+        self.combine_images()
+        self.combined_image.show()
+        # Update the display
+
+
     def level_change(self, r):
         if self.tiff_loaded:
             print("ich bin ein tif")
+            r_index = [slider.name for slider in self.sliders].index(r)
+            print(f"Slider {r} value: {self.sliders[r_index].value()}")
+            self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+
         else:
             print("ich bin kein tif")
             r = ["red", "green", "blue"].index(r)
@@ -1132,7 +1234,8 @@ class MainW(QMainWindow):
                 if not self.autobtn.isChecked():
                     for r in range(3):
                         for i in range(len(self.saturation[r])):
-                            self.saturation[r][i] = self.saturation[r][self.currentZ]
+                            self.saturation[r][i] = self.saturation[r][
+                                self.currentZ]
                 self.update_plot()
 
     def keyPressEvent(self, event):
