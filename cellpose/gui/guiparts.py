@@ -458,6 +458,10 @@ class MinimapWindow(QDialog):
         # Remove all resize handles after initialization
         QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
                                              self.highlight_area.getHandles()])
+
+
+        # Set the highlight area to cover the entire image by default
+        self.set_highlight_area(0, 0, 1, 1)
         # Add the highlight area to the viewbox
         self.viewbox.addItem(self.highlight_area)
 
@@ -514,7 +518,8 @@ class MinimapWindow(QDialog):
     def set_highlight_area(self, normalized_x, normalized_y, normalized_width, normalized_height):
         """
         Method to set the highlight area on the minimap.
-        The position and size of the rectangle are set based on the calculated normalized coordinates from the on_view method.
+        The position and size of the rectangle are set based on the calculated normalized coordinates from the
+        onViewChanged method.
 
         Parameters:
         normalized_x (float): Normalized x-coordinate for the position.
@@ -538,8 +543,8 @@ class MinimapWindow(QDialog):
             height = normalized_height * img_height
 
             # Ensure the highlight area does not exceed the boundaries of the minimap
-            x = max(0, min(x, self.viewbox.width() - width))
-            y = max(0, min(y, self.viewbox.height() - height))
+            x = max(0, x)
+            y = max(0, y)
 
             # Set the position of the rectangle  area on the minimap
             # Move the rectangle to the calculated position
@@ -549,8 +554,6 @@ class MinimapWindow(QDialog):
             # Adjust the rectangle's size to the calculated width and height
             self.highlight_area.setSize([width, height])
 
-            # Return the calculated coordinates and dimensions of the rectangle
-            return x, y, width, height
         else:
             print("Error: No image loaded in parent.")
 
