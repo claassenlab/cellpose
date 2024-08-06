@@ -171,6 +171,8 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             parent.minimap_window_instance = guiparts.MinimapWindow(parent)
             parent.minimap_window_instance.show()
 
+        parent.saveFeaturesCsv.setEnabled(False)
+
 
 def _initialize_images(parent, image, load_3D=False):
     """ format image for GUI """
