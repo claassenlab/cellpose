@@ -14,12 +14,13 @@ install_deps = [
     'fastremap',
     'imagecodecs',
     'roifile',
+    'pillow',
 ]
 
 image_deps = ['nd2', 'pynrrd']
 
 gui_deps = [
-    'pyqtgraph>=0.11.0rc0', "pyqt6", "pyqt6.sip", 'qtpy', 'superqt',
+    'pyqtgraph>=0.11.0rc0', "pyqt6", "pyqt6.sip", 'qtpy', 'superqt', 'opencv-python'
 ]
 
 docs_deps = [
@@ -102,7 +103,7 @@ setup(name="cellpose",
           'gui': gui_deps,
           'distributed': distributed_deps,
           'dev': gui_deps + lint_deps,
-          'all': gui_deps + distributed_deps + image_deps,
+          'all': gui_deps + distributed_deps + image_deps + lint_deps + test_deps,
       },
       include_package_data=True,
       classifiers=(
