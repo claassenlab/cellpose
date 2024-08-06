@@ -453,7 +453,8 @@ class MinimapWindow(QDialog):
 
         # Create and add a highlight rectangle to the minimap with initial position [0, 0] and size [100, 100], outlined
         # in white with a 3-pixel width.
-        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False)
+        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False, movable=False)
+        self.highlight_area.hoverEvent = lambda event: None
         # Remove all resize handles after initialization
         QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
                                              self.highlight_area.getHandles()])
@@ -635,6 +636,7 @@ class MinimapWindow(QDialog):
 
             # Change the view in the main window to the clicked position
             self.parent().center_view_on_position(normalized_x, normalized_y)
+
 
 class ViewBoxNoRightDrag(pg.ViewBox):
 
