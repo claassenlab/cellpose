@@ -4,7 +4,6 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import sys, os, pathlib, warnings, datetime, time, copy
 
-from PIL import Image
 from qtpy import QtGui, QtCore
 from superqt import QRangeSlider, QCollapsible
 from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
@@ -476,6 +475,9 @@ class MainW(QMainWindow):
             # Calculate the normalized dimensions
             normalized_width = width / img_width
             normalized_height = height / img_height
+
+            # Set the highlight area in the minimap window
+            self.minimap_window_instance.set_highlight_area(normalized_x[0], normalized_y[0], normalized_width, normalized_height)
 
             return normalized_x, normalized_y, normalized_width, normalized_height
 
