@@ -1214,11 +1214,45 @@ class MainW(QMainWindow):
         """
         on_off_button = QPushButton()
         on_off_button.setCheckable(True)
-        on_off_button.setChecked(False)
+        on_off_button.setChecked(True)  # Initial state is "on"
         on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
         on_off_button.setIconSize(QtCore.QSize(12, 12))
         on_off_button.clicked.connect(self.toggle_on_off)
+        on_off_button.clicked.connect(self.toggle_channel_on_off)
         return on_off_button
+
+
+    def toggle_channel_on_off(self, channel):
+        """
+        Toggle the alpha channel of the layer corresponding to the given index based on the button state.
+
+        Args:
+            channel (int): The index of the layer to toggle.
+            checked (bool): State of the toggle button (True if the button is checked).
+        """
+        # Retrieve the image corresponding to the channel
+        channel = self.senderSignalIndex()
+        image = self.grayscale_image_stack[channel]
+        image2 = self.colored_image_stack[channel]
+        button = self.sender()
+
+
+        if button.isChecked():
+
+            # Retrieve the original alpha channel
+            alpha = image.getchannel("A")
+        else:
+            # Create a full-opacity alpha channel
+            alpha = Image.new('L', image.size, 0)  # 'L' mode for single channel
+
+        # Update the image with the new alpha channel
+        self.colored_image_stack[channel].putalpha(alpha)
+        self.combine_images()
+        self.update_plot()
+
+
+        # Update the UI or notify other components that the image has changed
+
 
     def toggle_on_off(self):
         """
