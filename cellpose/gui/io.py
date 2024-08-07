@@ -4,6 +4,7 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import os, datetime, gc, warnings, glob, shutil, copy
 from natsort import natsorted
+from PIL import Image
 import numpy as np
 import cv2
 import tifffile
