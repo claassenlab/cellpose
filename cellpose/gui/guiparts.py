@@ -542,10 +542,6 @@ class MinimapWindow(QDialog):
             width = normalized_width * img_width
             height = normalized_height * img_height
 
-            # Ensure the highlight area does not exceed the boundaries of the minimap
-            x = max(0, x)
-            y = max(0, y)
-
             # Set the position of the rectangle  area on the minimap
             # Move the rectangle to the calculated position
             self.highlight_area.setPos(x, y)
