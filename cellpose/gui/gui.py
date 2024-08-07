@@ -395,7 +395,6 @@ class MainW(QMainWindow):
         self.p0.sigRangeChanged.connect(self.onViewChanged)
 
 
-
         # if called with image, load it
         if image is not None:
             self.filename = image
@@ -417,38 +416,6 @@ class MainW(QMainWindow):
         self.setAcceptDrops(True)
         self.win.show()
         self.show()
-
-
-    def combine_images(self):
-        """
-        Combine a list of images by overlaying them, with a black background as the first layer.
-
-        Returns:
-            Image: The combined RGBA image.
-        """
-        if not self.colored_image_stack:
-            raise ValueError("No images in the stack to combine.")
-
-        # Create a blank black image with the same size as the first image in the stack
-        black_background = Image.new("RGBA", self.colored_image_stack[0].size,
-                                     (0, 0, 0, 255))
-
-        # Start with the black background
-        base_image = black_background
-
-        for image in self.colored_image_stack:
-            # Ensure the image is in RGBA format
-            if image.mode != 'RGBA':
-                image = image.convert('RGBA')
-            # Overlay the image on the base image
-            base_image = Image.alpha_composite(base_image, image)
-
-        base_image = base_image.convert('RGB')
-        # Convert the base image to a NumPy array
-        base_image = np.array(base_image)
-        self.combined_image = np.array(base_image)
-
-
 
 
     def help_window(self):
@@ -497,20 +464,20 @@ class MainW(QMainWindow):
                 self.minimap_window_instance = None
 
     def color_initialization(self):
-        colors = [
-            (255, 0, 0),  # Red
-            (0, 255, 0),  # Green
-            (0, 0, 255),  # Blue
-            (255, 255, 0),  # Yellow
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Cyan
-            (255, 165, 0)  # Orange
-        ]
+        """
+        Initializes the color stack by assigning every layer a standard color by repeating colors in the list.
+        """
+        colors = [(255, 0, 0),  # Red
+                      (0, 255, 0),  # Green
+                      (0, 0, 255),  # Blue
+                      (255, 255, 0),  # Yellow
+                      (255, 0, 255),  # Magenta
+                      (0, 255, 255),  # Cyan
+                      (255, 165, 0)]
+        self.colors_stack = []  # Ensure colors_stack is empty before initialization
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
 
-    def generate_color_image_stack(self):
-        pass
     def initialize_color_image_stack(self):
         self.colored_image_stack = []
         for i in range(len(self.grayscale_image_stack)):
@@ -523,13 +490,64 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-        self.combine_images()
+            self.combine_images()
 
-    def update_color(self, index, color):
-        self.colors_stack[index] = color
-        self.generate_color_image_stack()
-        self.combine_image()
-        self.update_plot()
+
+    def generate_color_image_stack(self):
+        """
+        Generate a color image stack by overlaying the grayscale images with the corresponding colors from the colors stack.
+
+        This function iterates over the grayscale image stack and the colors stack simultaneously. For each pair of grayscale image and color, it creates a new RGBA image by overlaying the grayscale image with the color. The alpha channel of the grayscale image is used as the transparency level for the overlay. The resulting colored image is then assigned to the corresponding position in the colored image stack.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
+        for i in range(len(self.colored_image_stack)):
+            alpha = self.grayscale_image_stack[i].getchannel("A")
+            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                 self.colors_stack[i])
+            colored_image = Image.merge(
+                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                         color_bg.getchannel("B"), alpha))
+            self.colored_image_stack[i] = colored_image
+
+
+
+    def combine_images(self):
+        """
+        Combine a list of images by overlaying them, with a black background as the first layer.
+
+        Returns:
+            Image: The combined RGBA image.
+        """
+        if not self.colored_image_stack:
+            raise ValueError("No images in the stack to combine.")
+
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size,
+                                     (0, 0, 0, 255))
+
+        # Start with the black background
+        base_image = black_background
+
+        for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
+            base_image = Image.alpha_composite(base_image, image)
+
+        base_image = base_image.convert('RGB')
+        base_image.show()
+
+        # Convert the base image to a NumPy array
+        base_image = np.array(base_image)
+        self.combined_image = np.array(base_image)
+
+
 
     def minimap_closed(self):
         """
@@ -1584,11 +1602,13 @@ class MainW(QMainWindow):
         self.outcolor = [200, 200, 255, 200]
         self.NZ, self.Ly, self.Lx = 1, 224, 224
         self.saturation = []
+        for slider in self.sliders:
+            slider.setValue([0, 255])
+            slider.setEnabled(False)
+            slider.show()
         for r in range(3):
             self.saturation.append([[0, 255] for n in range(self.NZ)])
-            self.sliders[r].setValue([0, 255])
-            self.sliders[r].setEnabled(False)
-            self.sliders[r].show()
+
         self.currentZ = 0
         self.flows = [[], [], [], [], [[]]]
         # masks matrix

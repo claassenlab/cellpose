@@ -142,6 +142,7 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
                 # parent.generate_multi_channel_ui()
             else:
                 raise Exception("ERROR: Could not load tiff image")
+
         image = imread(filename)
         parent.loaded = True
     except Exception as e:
