@@ -58,6 +58,83 @@ class Slider(QRangeSlider):
         parent.level_change(self.name)
 
 
+# On off button
+class OnOffButton(QPushButton):
+    def __init__(self, parent, index):
+        super(OnOffButton, self).__init__(parent)
+
+        self.index = index
+
+        self.setCheckable(True)
+        self.setChecked(False)
+        self.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
+        self.setIconSize(QtCore.QSize(12, 12))
+        self.clicked.connect(self.toggle_on_off(parent))
+
+    def toggle_on_off(self, parent):
+        """
+        Slot method that toggles the appearance of the on-off button when clicked.
+        Changes the icon to indicate the current state.
+        """
+        if self.isChecked():
+            self.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
+            parent.reset_alpha(self.index)
+        else:
+            self.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
+            parent.set_alpha_zero(self.index)
+
+class ColorButton(QPushButton):
+    def __init__(self, parent, color, index):
+        super(ColorButton, self).__init__(parent)
+        self.color = color
+        self.index = index
+        self.setStyleSheet(self.get_color_button_style(color))
+        self.clicked.connect(self.open_color_dialog(parent))
+
+
+    def open_color_dialog(self, parent):
+        """
+        Opens a QColorDialog and updates the background color of the button
+        that was clicked (the sender of the signal) if a valid color is selected.
+        """
+        # Get the current color of the sender button
+        current_color = self.palette().button().color()
+
+        # Create a QColorDialog instance
+        color_dialog = QColorDialog()
+
+        # Set the current color of the dialog
+        color_dialog.setCurrentColor(current_color)
+
+        # Execute the dialog and check if a valid color is selected
+        if color_dialog.exec_():
+            color = color_dialog.selectedColor()
+            if color.isValid():
+                self.setStyleSheet(self.get_color_button_style(color.name()))
+                # convert qcolor to rgb tuple
+                color = color.getRgb()[0:3]
+                parent.update_color(self.index, color)
+
+    def get_color_button_style(self, color_name):
+        """
+        Returns a string with the CSS style for a QPushButton with the specified background color, a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
+
+        Args:
+            color_name (str): The name of the color to use for the button's background.
+
+        Returns:
+            str: The CSS style for the button.
+        """
+        return f"""
+            QPushButton {{
+                background-color: {color_name};
+                border-style: solid;
+                border-width: 1px;
+                height: 12px;
+                width: 12px;
+                }}
+            """
+
 class QHLine(QFrame):
 
     def __init__(self):
@@ -231,6 +308,18 @@ class MainW(QMainWindow):
                            }"""
         self.loaded = False
 
+        # Custom multi-page tiff image stack
+        self.grayscale_image_stack = []
+        self.colors_stack = []
+        self.colored_image_stack = []
+        self.combined_image = None
+        self.opacity_stack = []
+        self.alpha_stack = []
+        self.multi_page_tiff_loaded = False
+        self.on_off_buttons = []
+        self.color_buttons = []
+        self.labels = []
+
         # ---- MAIN WIDGET LAYOUT ---- #
         self.cwidget = QWidget(self)
         self.lmain = QGridLayout()
@@ -305,10 +394,7 @@ class MainW(QMainWindow):
         # if the view of the image is changed, the method onViewChanged is called
         self.p0.sigRangeChanged.connect(self.onViewChanged)
 
-        # Custom multi-page tiff image stack
-        self.grayscale_image_stack = []
-        self.colors_stack = []
-        self.colored_image_stack = []
+
 
         # if called with image, load it
         if image is not None:
@@ -343,6 +429,24 @@ class MainW(QMainWindow):
     def gui_window(self):
         EG = guiparts.ExampleGUI(self)
         EG.show()
+
+    def reset_on_off_alpha(self, index):
+        """
+        After the on_off button is put on "on" state, the alpha is taken from the alpha stack and put into the color stack
+        """
+        self.colored_image_stack[index].putalpha(self.alpha_stack[index])
+        self.combine_images()
+        self.update_plot()
+
+
+    def set_alpha_zero(self, index):
+        """
+        After the on_off button is put on "off" state, the alpha is stored in the alpha stack and set to 0
+        """
+        self.alpha_stack[index] = self.colored_image_stack[index].getalpha()
+        self.colored_image_stack[index].putalpha(0)
+        self.combine_images()
+        self.update_plot()
 
     def minimap_window(self):
         """
@@ -384,6 +488,11 @@ class MainW(QMainWindow):
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
 
+    def update_color(self, index, color):
+        self.colors_stack[index] = color
+        self.generate_color_image_stack()
+        self.combine_image()
+        self.update_plot()
 
     def minimap_closed(self):
         """
@@ -484,6 +593,64 @@ class MainW(QMainWindow):
             # if an exception of any kind occurs, the specific exception is printed to the console
             print(f"An error occurred while changing the view: {e}")
 
+    def delete_buttons(self):
+        for label in self.labels:
+            self.rightBoxLayout.removeWidget(label)
+        for slider in self.sliders:
+            self.rightBoxLayout.removeWidget(slider)
+        for color_button in self.color_buttons:
+            self.rightBoxLayout.removeWidget(color_button)
+        for on_off_button in self.on_off_buttons:
+            self.rightBoxLayout.removeWidget(on_off_button)
+
+        self.labels = []
+        self.sliders = []
+        self.color_buttons = []
+        self.on_off_buttons = []
+
+    def make_multi_channel_buttons(self):
+        if self.multi_page_tiff_loaded:
+            self.delete_buttons()
+
+            # ---Create a list (extendable) of color/on-off buttons  ---#
+
+            self.color_buttons = [ColorButton(self,i) for i in range(len(self.grayscale_image_stack))]
+            self.on_off_buttons = [OnOffButton(self,i) for i in range(len(self.grayscale_image_stack))]
+
+            c = 0
+
+            for r in range(len(self.grayscale_image_stack)):
+                c += 1
+                # create labels
+                label = QLabel(f'Marker {r + 1}')  # create a label for each marker
+                label.setStyleSheet("color: white")
+                label.setFont(self.boldmedfont)
+
+                # get buttons
+                color_button = self.color_buttons[r]  # get the corresponding color button
+                on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
+
+                # add labels and buttons to layout
+                self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+                self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
+                self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
+
+                # create sliders and add them to the layout
+                self.sliders.append(Slider(self, r, None))
+                self.sliders[-1].setMinimum(-.1)
+                self.sliders[-1].setMaximum(255.1)
+                self.sliders[-1].setValue([0, 255])
+                self.sliders[-1].setToolTip(
+                    "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
+                )
+
+                self.sliders[-1].setFixedWidth(250)
+                self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
+                stretch_widget = QWidget()
+                self.rightBoxLayout.addWidget(stretch_widget)
+
+
+
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
         self.boldmedfont = QtGui.QFont("Arial", 9, QtGui.QFont.Bold)
@@ -543,23 +710,16 @@ class MainW(QMainWindow):
         c = 0  # position of the elements in the right side menu
 
         self.sliders = []
-        # ---Create a list (extendable) of color/on-off buttons  ---#
         colors = ["red", "green", "blue"]
-        self.marker_buttons = [self.create_color_button(color) for color in colors]
-        self.on_off_buttons = [self.create_on_off_button() for color in colors]
 
         for r in range(3):
             c += 1
 
-            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
-            color_button = self.marker_buttons[r]  # get the corresponding color button
-            self.marker_buttons = [self.create_color_button(color) for color in colors]
-            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
+            label = QLabel(colors[r])  # create a label for each marker
             label.setStyleSheet("color: white")
             label.setFont(self.boldmedfont)
+            self.labels.append(label)
             self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
             self.sliders.append(Slider(self, colors[r], None))
             self.sliders[-1].setMinimum(-.1)
             self.sliders[-1].setMaximum(255.1)
@@ -1027,87 +1187,7 @@ class MainW(QMainWindow):
 
         return b
 
-    def create_color_button(self, color):
-        """
-            Creates and initializes all the buttons and UI elements used in the GUI.
-            This includes buttons for changing views, drawing, segmentation, model
-            selection, and image restoration. Also initializes color buttons with
-            specific colors (red, green, blue) and on-off buttons.
 
-            Returns:
-                int: The number of buttons and UI elements created.
-            """
-        color_button = QPushButton()
-        color_button.setStyleSheet(self.get_color_button_style(color))
-        color_button.clicked.connect(self.open_color_dialog)
-        return color_button
-
-    def create_on_off_button(self):
-        """
-        Creates a new QPushButton for toggling on and off, with an initial "off" state,
-        and connects its clicked signal to the toggle_on_off method.
-
-        Returns:
-            QPushButton: The created on-off button.
-        """
-        on_off_button = QPushButton()
-        on_off_button.setCheckable(True)
-        on_off_button.setChecked(False)
-        on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
-        on_off_button.setIconSize(QtCore.QSize(12, 12))
-        on_off_button.clicked.connect(self.toggle_on_off)
-        return on_off_button
-
-    def toggle_on_off(self):
-        """
-        Slot method that toggles the appearance of the on-off button when clicked.
-        Changes the icon to indicate the current state.
-        """
-        button = self.sender()
-        if button.isChecked():
-            button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
-        else:
-            button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
-
-    def open_color_dialog(self):
-        """
-        Opens a QColorDialog and updates the background color of the button 
-        that was clicked (the sender of the signal) if a valid color is selected.
-        """
-        # Get the current color of the sender button
-        current_color = self.sender().palette().button().color()
-
-        # Create a QColorDialog instance
-        color_dialog = QColorDialog()
-
-        # Set the current color of the dialog
-        color_dialog.setCurrentColor(current_color)
-
-        # Execute the dialog and check if a valid color is selected
-        if color_dialog.exec_():
-            color = color_dialog.selectedColor()
-            if color.isValid():
-                self.sender().setStyleSheet(self.get_color_button_style(color.name()))
-
-    def get_color_button_style(self, color_name):
-        """
-        Returns a string with the CSS style for a QPushButton with the specified background color, a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
-
-        Args:
-            color_name (str): The name of the color to use for the button's background.
-
-        Returns:
-            str: The CSS style for the button.
-        """
-        return f"""
-            QPushButton {{
-                background-color: {color_name};
-                border-style: solid;
-                border-width: 1px;
-                height: 12px;
-                width: 12px;
-                }}
-            """
 
     def level_change(self, r):
         r = ["red", "green", "blue"].index(r)

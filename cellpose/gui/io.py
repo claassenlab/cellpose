@@ -119,8 +119,9 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
 
             # Initialize the colors and colored_image_stack attributes
             parent.color_initialization()
-            parent.generate_color_image_stack()
-
+            parent.initialize_color_image_stack()
+            parent.multi_page_tiff_loaded = True
+            parent.make_multi_channel_buttons()
             # Initialize the Buttons and sliders
             # parent.generate_multi_channel_ui()
 
@@ -214,6 +215,8 @@ def _initialize_images(parent, image, load_3D=False):
 
     if image.shape[-1] > 3:
         print("WARNING: image has more than 3 channels, keeping only first 3")
+        parent.full_image_stack = image # image with all channels
+        parent.multi_page_tiff_loaded = True
         image = image[..., :3]
     elif image.shape[-1] == 2:
         # fill in with blank channels to make 3 channels
@@ -231,6 +234,7 @@ def _initialize_images(parent, image, load_3D=False):
     else:
         parent.NZ = 1
         parent.stack = parent.stack[np.newaxis, ...]
+        parent.full_image_stack = parent.full_image_stack[np.newaxis, ...]
 
     img_min = image.min()
     img_max = image.max()

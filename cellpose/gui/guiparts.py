@@ -1,7 +1,7 @@
 """
 Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer and Marius Pachitariu.
 """
-
+from PyQt6.QtGui import QIcon
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtGui import QPainter, QPixmap, QImage, QFont
 from qtpy.QtWidgets import QApplication, QRadioButton, QWidget, QDialog, QButtonGroup, QSlider, QStyle, QStyleOptionSlider, QGridLayout, QPushButton, QLabel, QLineEdit, QDialogButtonBox, QComboBox, QCheckBox, QDockWidget, QMenu, QWidgetAction
