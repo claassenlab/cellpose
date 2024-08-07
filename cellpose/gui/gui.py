@@ -429,13 +429,13 @@ class MainW(QMainWindow):
 
     from PIL import Image
 
-    def combine_images(self):
-        """
+    """def combine_images(self):
+        
         Combine a list of images by overlaying them, with a black background as the first layer.
 
         Returns:
             Image: The combined RGBA image.
-        """
+        
         if not self.colored_image_stack:
             raise ValueError("No images in the stack to combine.")
 
@@ -456,7 +456,41 @@ class MainW(QMainWindow):
         base_image = base_image.convert('RGB')
         # Convert the base image to a NumPy array
         base_image = np.array(base_image)
-        self.combined_image = np.array(base_image)
+        self.combined_image = np.array(base_image)"""
+
+    def combine_images(self):
+        """
+        Combine a list of images by overlaying them, with a black background as the first layer.
+
+        Returns:
+            np.array: The combined image as a NumPy array in RGB format.
+        """
+        if not self.colored_image_stack:
+            raise ValueError("No images in the stack to combine.")
+
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
+
+        # Start with the black background
+        base_image = black_background
+
+        for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
+            base_image = Image.alpha_composite(base_image, image)
+
+        # Convert to RGB before conversion to array
+        base_image_rgb = base_image.convert('RGB')
+
+        # Convert the PIL Image to a NumPy array and ensure type is uint8
+        base_array = np.array(base_image_rgb)
+        # Ensure the data is of type uint8, containing values from 0 to 255
+        base_array = np.clip(base_array, 0, 255).astype(np.uint8)
+
+        self.combined_image = base_array
+        return self.combined_image
 
 
     def minimap_closed(self):
@@ -1313,6 +1347,8 @@ class MainW(QMainWindow):
         #self.colored_image_stack[channel] = self.set_image_opacity(
         #    self.colored_image_stack[channel], self.grayscale_image_stack[channel])
         self.combine_images()
+        # image = Image.fromarray(self.combined_image)
+        # image.show()
         # Update the display
 
 
@@ -1325,6 +1361,7 @@ class MainW(QMainWindow):
                 print("slider array " + str(len(self.sliders)))
                 print(f"Slider {r} value: {self.sliders[r_index].value()}")
                 self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+                self.update_plot()
 
         else:
             print("ich bin kein tif")
@@ -2143,10 +2180,11 @@ class MainW(QMainWindow):
                 self.img.setImage(image, autoLevels=False, lut=None)
             self.img.setLevels([0.0, 255.0])
 
-        for r in range(3):
-            self.sliders[r].setValue([
-                self.saturation[r][self.currentZ][0],
-                self.saturation[r][self.currentZ][1]
+        if not self.tiff_loaded:
+            for r in range(3):
+                self.sliders[r].setValue([
+                    self.saturation[r][self.currentZ][0],
+                    self.saturation[r][self.currentZ][1]
             ])
 
         # If the channels are updated, the minimap is updated as well
