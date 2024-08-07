@@ -9,7 +9,7 @@ import cv2
 import tifffile
 import logging
 import fastremap
-from PIL import Image, ImageSequence, ImageOps
+
 
 from ..io import imread, imsave, outlines_to_text, add_model, remove_model, save_rois, save_settings, save_features_csv
 from ..models import normalize_default, MODEL_DIR, MODEL_LIST_PATH, get_user_models
