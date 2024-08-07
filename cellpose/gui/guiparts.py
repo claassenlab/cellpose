@@ -4,7 +4,9 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 from qtpy import QtGui, QtCore, QtWidgets
 from qtpy.QtGui import QPainter, QPixmap, QImage, QFont
-from qtpy.QtWidgets import QApplication, QRadioButton, QWidget, QDialog, QButtonGroup, QSlider, QStyle, QStyleOptionSlider, QGridLayout, QPushButton, QLabel, QLineEdit, QDialogButtonBox, QComboBox, QCheckBox, QDockWidget, QMenu, QWidgetAction
+from qtpy.QtWidgets import QApplication, QRadioButton, QWidget, QDialog, QButtonGroup, QSlider, QStyle, \
+    QStyleOptionSlider, QGridLayout, QPushButton, QLabel, QLineEdit, QDialogButtonBox, QComboBox, QCheckBox, \
+    QDockWidget, QMenu, QWidgetAction
 from qtpy.QtCore import QEvent
 import pyqtgraph as pg
 from pyqtgraph import functions as fn
@@ -224,10 +226,11 @@ class TrainWindow(QDialog):
         # choose parameters
         labels = ["learning_rate", "weight_decay", "n_epochs", "model_name"]
         self.edits = []
-        self.parameter_explanations = ["The learning rate determines how quickly or slowly the model learns from data. A higher learning rate may lead to faster learning but could cause the model to overshoot the optimal solution. Conversely, a lower learning rate may result in slower learning but is safer and more likely to find the best solution.",
-                                       "Weight decay helps prevent overfitting by penalizing large parameter values in the model. \n Increasing weight decay encourages the model to learn simpler patterns from the data,\n improving its ability to generalize to new, unseen examples.",
-                                       "The number of times the entire dataset is passed forward and backward through the machine learning model during training. Increasing the number of epochs allows the model to see the data more times, potentially improving its accuracy. However, too many epochs can lead to overfitting, where the model memorizes the training data instead of learning generalizable patterns.",
-                     ""]
+        self.parameter_explanations = [
+            "The learning rate determines how quickly or slowly the model learns from data. A higher learning rate may lead to faster learning but could cause the model to overshoot the optimal solution. Conversely, a lower learning rate may result in slower learning but is safer and more likely to find the best solution.",
+            "Weight decay helps prevent overfitting by penalizing large parameter values in the model. \n Increasing weight decay encourages the model to learn simpler patterns from the data,\n improving its ability to generalize to new, unseen examples.",
+            "The number of times the entire dataset is passed forward and backward through the machine learning model during training. Increasing the number of epochs allows the model to see the data more times, potentially improving its accuracy. However, too many epochs can lead to overfitting, where the model memorizes the training data instead of learning generalizable patterns.",
+            ""]
         yoff += 1
         for i, label in enumerate(labels):
             qlabel = QLabel(label)
@@ -338,6 +341,7 @@ class HelpWindow(QDialog):
         layout.addWidget(label, 0, 0, 1, 1)
         self.show()
 
+
 class TrainHelpWindow(QDialog):
     def __init__(self, parent=None):
         super(TrainHelpWindow, self).__init__(parent)
@@ -380,7 +384,7 @@ class TrainHelpWindow(QDialog):
         # Get the current font size from the combo box
         font_size = int(self.font_size_combo.currentText())
         # Calculate the new font size based on window height and width
-        new_font_size = max(5, int((self.height() * self.width())**0.5 / 45))
+        new_font_size = max(5, int((self.height() * self.width()) ** 0.5 / 45))
         # Set the font size for the label
         # The if statement prevents the font from being too big to fit the screen/window
         if new_font_size < font_size:
@@ -420,7 +424,6 @@ class MinimapWindow(QDialog):
         self.minimapSize = self.defaultSize
         self.rightClickInteraction = True
 
-
         # Create a QGridLayout for the window
         layout = QGridLayout()
         layout.setContentsMargins(0, 0, 0, 0)  # Set margins (left, top, right, bottom) to zero
@@ -453,10 +456,12 @@ class MinimapWindow(QDialog):
 
         # Create and add a highlight rectangle to the minimap with initial position [0, 0] and size [100, 100], outlined
         # in white with a 3-pixel width.
-        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False)
+        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False, movable=False)
+        self.highlight_area.hoverEvent = lambda event: None
         # Remove all resize handles after initialization
         QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
                                              self.highlight_area.getHandles()])
+        self.set_highlight_area(0, 0, 1, 1)
         # Add the highlight area to the viewbox
         self.viewbox.addItem(self.highlight_area)
 
@@ -524,6 +529,20 @@ class MinimapWindow(QDialog):
         Returns:
         tuple: The calculated (x, y, width, height) coordinates.
         """
+        if normalized_x < 0:
+            normalized_width = normalized_width + normalized_x
+            normalized_x = 0
+        if normalized_y < 0:
+            normalized_height = normalized_height + normalized_y
+            normalized_y = 0
+        if normalized_height > 1:
+            normalized_height = 1
+        if normalized_width > 1:
+            normalized_width = 1
+        if normalized_x + normalized_width > 1:
+            normalized_width = 1 - normalized_x
+        if normalized_y + normalized_height > 1:
+            normalized_height = 1 - normalized_y
 
         if self.parent().img.image is not None:
             # Retrieve the height and width of the image
@@ -536,13 +555,6 @@ class MinimapWindow(QDialog):
             width = normalized_width * img_width
             height = normalized_height * img_height
 
-            # Ensure the highlight area does not exceed the boundaries of the minimap
-            if x + width > img_width:
-                print("Error: Highlight area width exceeds image width.")
-                width = img_width - x
-            if y + height > img_height:
-                print("Error: Highlight area height exceeds image height.")
-                height = img_height - y
 
             # Set the position of the rectangle  area on the minimap
             # Move the rectangle to the calculated position
@@ -556,7 +568,6 @@ class MinimapWindow(QDialog):
             return x, y, width, height
         else:
             print("Error: No image loaded in parent.")
-
 
     def sliderValueChanged(self, value):
         """
@@ -629,12 +640,13 @@ class MinimapWindow(QDialog):
             self.lastClickPos = (viewboxPos.x(), viewboxPos.y())
 
             # Normalize the clicked position's coordinates to values between 0 and 1.
-            normalized_x = (viewboxPos.x() - 9)/ self.viewbox.width()
-            normalized_y = (viewboxPos.y() - 9)/ self.viewbox.height()
+            normalized_x = (viewboxPos.x() - 9) / self.viewbox.width()
+            normalized_y = (viewboxPos.y() - 9) / self.viewbox.height()
             self.normalizedClickPos = (normalized_x, normalized_y)
 
             # Change the view in the main window to the clicked position
             self.parent().center_view_on_position(normalized_x, normalized_y)
+
 
 class ViewBoxNoRightDrag(pg.ViewBox):
 
@@ -697,10 +709,10 @@ class ImageDraw(pg.ImageItem):
 
     def mouseClickEvent(self, ev):
         if (self.parent.masksOn or
-                self.parent.outlinesOn) and not self.parent.removing_region:
+            self.parent.outlinesOn) and not self.parent.removing_region:
             is_right_click = ev.button() == QtCore.Qt.RightButton
             if self.parent.loaded \
-                    and (is_right_click or ev.modifiers() & QtCore.Qt.ShiftModifier and not ev.double())\
+                    and (is_right_click or ev.modifiers() & QtCore.Qt.ShiftModifier and not ev.double()) \
                     and not self.parent.deleting_multiple:
                 if not self.parent.in_stroke:
                     ev.accept()
@@ -770,7 +782,7 @@ class ImageDraw(pg.ImageItem):
         if len(self.parent.current_stroke) > 3:
             stroke = np.array(self.parent.current_stroke)
             dist = (((stroke[1:, 1:] -
-                      stroke[:1, 1:][np.newaxis, :, :])**2).sum(axis=-1))**0.5
+                      stroke[:1, 1:][np.newaxis, :, :]) ** 2).sum(axis=-1)) ** 0.5
             dist = dist.flatten()
             #print(dist)
             has_left = (dist > thresh_out).nonzero()[0]
