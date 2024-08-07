@@ -461,7 +461,7 @@ class MinimapWindow(QDialog):
         # Remove all resize handles after initialization
         QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
                                              self.highlight_area.getHandles()])
-        self.set_highlight_area(0, 0, 1, 1)
+        self.set_highlight_area(-1, -1, 2, 2)
         # Add the highlight area to the viewbox
         self.viewbox.addItem(self.highlight_area)
 
@@ -507,7 +507,7 @@ class MinimapWindow(QDialog):
             # Set the size of the minimap based on the aspect ratio of the image
             # this ensures that the aspect ratio is always correct
             aspect_ratio = self.mini_image.width() / self.mini_image.height()
-            self.setFixedSize(int(self.minimapSize * aspect_ratio), self.minimapSize)
+            self.setFixedSize(int(self.minimapSize * aspect_ratio), int(self.minimapSize))
             # Ensure image fits viewbox
             self.viewbox.setLimits(xMin=0, xMax=parent.Lx, yMin=0, yMax=parent.Ly)
 
@@ -529,7 +529,7 @@ class MinimapWindow(QDialog):
         Returns:
         tuple: The calculated (x, y, width, height) coordinates.
         """
-        if normalized_x < 0:
+        """  if normalized_x < 0:
             normalized_width = normalized_width + normalized_x
             normalized_x = 0
         if normalized_y < 0:
@@ -542,7 +542,7 @@ class MinimapWindow(QDialog):
         if normalized_x + normalized_width > 1:
             normalized_width = 1 - normalized_x
         if normalized_y + normalized_height > 1:
-            normalized_height = 1 - normalized_y
+            normalized_height = 1 - normalized_y"""
 
         if self.parent().img.image is not None:
             # Retrieve the height and width of the image
@@ -554,6 +554,8 @@ class MinimapWindow(QDialog):
             y = normalized_y * img_height
             width = normalized_width * img_width
             height = normalized_height * img_height
+
+            print("image shape: ", img_height, img_width)
 
 
             # Set the position of the rectangle  area on the minimap
@@ -576,12 +578,14 @@ class MinimapWindow(QDialog):
         """
         # Calculate the new size of the minimap based on the slider value
         upscaleFactor = ((self.maximumSize - self.minimumSize) / 100)
-        self.minimapSize = int(self.minimumSize + upscaleFactor * value)
+        self.minimapSize = self.minimumSize + upscaleFactor * value
 
         # this ensures that the aspect ratio is always correct
         if self.parent().img.image is not None:
             aspect_ratio = self.mini_image.width() / self.mini_image.height()
-            self.setFixedSize(int(self.minimapSize * aspect_ratio), self.minimapSize)
+            print("aspect ratio: ", aspect_ratio, "width: ", self.mini_image.width(), "height: ", self.mini_image.height())
+            self.setFixedSize(int(self.minimapSize * aspect_ratio), int(self.minimapSize))
+            print("rounded values", int(self.minimapSize * aspect_ratio), int(self.minimapSize))
         else:
             self.setFixedSize(self.minimapSize, self.minimapSize)
 
