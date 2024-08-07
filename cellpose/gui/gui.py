@@ -44,7 +44,7 @@ class Slider(QRangeSlider):
 
     def __init__(self, parent, name, color):
         super().__init__(Horizontal)
-        self.setEnabled(False)
+        self.setEnabled(True)
         self.valueChanged.connect(lambda: self.levelChanged(parent))
         self.name = name
 
@@ -53,6 +53,8 @@ class Slider(QRangeSlider):
                              }
         """)
         self.show()
+
+
 
     def levelChanged(self, parent):
         parent.level_change(self.name)
@@ -308,7 +310,7 @@ class MainW(QMainWindow):
         self.colors_stack = []
         self.colored_image_stack = []
         self.combined_image = []
-        self.opacity_stack = []
+        self.opacity_stack = [255 for _ in range(len(self.grayscale_image_stack))]
 
         self.colors_tif = [
             "Red", "Green", "Blue", "Magenta", "Cyan"
@@ -424,6 +426,8 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack[i] = colored_image
+        self.combine_images()
+        self.update_plot()
 
 
 
@@ -1320,12 +1324,34 @@ class MainW(QMainWindow):
 
         return new_image
 
-    def adjust_contrast(self, image, lower_bound, upper_bound):
+    """def adjust_contrast(self, image, lower_bound, upper_bound, channel):
         image_np = np.array(image, dtype=np.float32)
         clipped_np = np.clip(
             (image_np - lower_bound) / (upper_bound - lower_bound) * 255, 0,
             255)
-        return Image.fromarray(clipped_np.astype(np.uint8))
+        return Image.fromarray(clipped_np.astype(np.uint8))"""
+
+    def adjust_contrast(self, image, lower_bound, upper_bound, channel):
+        # Retrieve the alpha channel from the specified channel in the grayscale image stack
+        alpha = self.grayscale_image_stack[channel].getchannel("A")
+
+        # Convert the alpha channel to a NumPy array for manipulation
+        alpha_np = np.array(alpha, dtype=np.float32)
+
+        # Apply the contrast adjustment to the alpha channel
+        adjusted_alpha_np = np.clip(
+            (alpha_np - lower_bound) / (upper_bound - lower_bound) * 255, 0, 255)
+
+        # Convert the adjusted alpha channel back to an image
+        adjusted_alpha = Image.fromarray(adjusted_alpha_np.astype(np.uint8))
+
+        # Create a new image by copying the original and replacing the alpha channel
+        new_image = image.copy()
+        new_image.putalpha(adjusted_alpha)
+
+        return new_image
+
+
 
     def adjust_channel_bounds(self, channel, bounds):
         """
@@ -1342,7 +1368,7 @@ class MainW(QMainWindow):
 
         # Adjust the alpha channel of the specified image
         self.colored_image_stack[channel] = self.adjust_contrast(
-            self.colored_image_stack[channel], lower_bound, upper_bound)
+            self.colored_image_stack[channel], lower_bound, upper_bound, channel)
         print(len(self.opacity_stack))
         #self.colored_image_stack[channel] = self.set_image_opacity(
         #    self.colored_image_stack[channel], self.grayscale_image_stack[channel])
