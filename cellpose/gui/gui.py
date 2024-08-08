@@ -146,6 +146,9 @@ def make_cmap(cm=0):
     cmap = pg.ColorMap(pos=np.linspace(0.0, 255, 256), color=color)
     return cmap
 
+def rgb_to_hex(rgb_tuple):
+    return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+
 
 def run(image=None):
     from ..io import logger_setup
@@ -312,17 +315,6 @@ class MainW(QMainWindow):
         self.combined_image = []
         self.opacity_stack = [255 for _ in range(len(self.grayscale_image_stack))]
 
-        self.colors_tif = [
-            "Red", "Green", "Blue", "Magenta", "Cyan"
-
-            '''(255, 0, 0),  # Red
-                      (0, 255, 0),  # Green
-                      (0, 0, 255),  # Blue
-                      (255, 255, 0),  # Yellow
-                      (255, 0, 255),  # Magenta
-                      (0, 255, 255),  # Cyan
-                      (255, 165, 0)''']  # Orange]
-
         # if called with image, load it
         if image is not None:
             self.filename = image
@@ -421,6 +413,7 @@ class MainW(QMainWindow):
             alpha = self.grayscale_image_stack[i].getchannel("A")
             color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
                                  self.colors_stack[i])
+            print(f"Image {i} - Color: {self.colors_stack[i]}")
             colored_image = Image.merge(
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
@@ -556,7 +549,7 @@ class MainW(QMainWindow):
 
         # Erstelle Buttons vor der Schleife
         self.sliders = []
-        self.marker_buttons = [self.create_color_button(self.colors_tif[r % len(self.colors_tif)], r) for r in range(n)]
+        self.marker_buttons = [self.create_color_button(rgb_to_hex(self.colors_stack[r]), r) for r in range(n)]
         self.on_off_buttons = [self.create_on_off_button(i) for i in range(n)]
 
         for r in range(n):
@@ -578,7 +571,7 @@ class MainW(QMainWindow):
 
             # Erstelle und füge den Slider hinzu
             slider_name = r
-            slider_color = self.colors_tif[r % len(self.colors_tif)]
+            slider_color = rgb_to_hex(self.colors_stack[r])
 
             self.sliders.append(Slider(self, slider_name,slider_color))
             self.sliders[-1].setMinimum(-.1)
