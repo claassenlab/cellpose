@@ -401,7 +401,6 @@ class MainW(QMainWindow):
                 "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
-            print("color image aufgerufen")
             # colored_image.show()
 
 
@@ -553,51 +552,6 @@ class MainW(QMainWindow):
 
 
     def generate_multi_channel_ui(self, n):
-        """c = 0  # position of the elements in the right side menu
-
-        self.sliders = []
-        # ---Create a list (extendable) of color/on-off buttons  ---#
-        colors = ["red", "green", "blue"]
-        self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-        self.on_off_buttons = [self.create_on_off_button() for color in colors]
-
-        for r in range(3):
-            c += 1
-
-            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
-            color_button = self.marker_buttons[r]  # get the corresponding color button
-            self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
-            label.setStyleSheet("color: white")
-            label.setFont(self.boldmedfont)
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
-<<<<<<< HEAD
-            self.sliders.append(Slider(self, colors[r], None))
-            self.sliders[-1].setMinimum(-.1)
-            self.sliders[-1].setMaximum(255.1)
-            self.sliders[-1].setValue([0, 255])
-            self.sliders[-1].setToolTip(
-=======
-            # Create the slider with a unique name
-            slider_name = r
-            slider_color = self.colors_tif[r % len(
-                self.colors_tif
-            )]  # Use modulo to cycle through colors if needed
-            slider = Slider(self, slider_name, slider_color)
-            slider.setMinimum(-.1)
-            slider.setMaximum(255.1)
-            slider.setValue([0, 255])
-            slider.setToolTip(
->>>>>>> 7a452ce92624c1827edb666375301afb21438ae2
-                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
-            )
-
-            self.sliders[-1].setFixedWidth(250)
-            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
-            stretch_widget = QWidget()
-            self.rightBoxLayout.addWidget(stretch_widget)"""
         c = 0  # Position der Elemente im Layout
 
         # Erstelle Buttons vor der Schleife
@@ -1289,12 +1243,9 @@ class MainW(QMainWindow):
             color = color_dialog.selectedColor()
             if color.isValid():
                 self.colors_stack[index] = (color.red(), color.green(), color.blue())
-                print(f'Updated color at index {index}: {self.colors_stack[index]}')  # Debug print
                 self.generate_color_image_stack()
                 self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
-                #self.colored_image_stack[index].show()
                 self.combine_images()
-                #self.combined_image.show()
 
 
     def get_color_button_style(self, color_name):
@@ -1399,35 +1350,24 @@ class MainW(QMainWindow):
             bounds (tuple): A tuple of (lower_bound, upper_bound) for the alpha adjustment.
         """
         lower_bound, upper_bound = bounds
-        print(
-            f"Adjusting channel {channel} to bounds {lower_bound} - {upper_bound}"
-        )
 
 
         # Adjust the alpha channel of the specified image
         self.colored_image_stack[channel] = self.adjust_contrast(
             self.colored_image_stack[channel], lower_bound, upper_bound, channel)
-        print(len(self.opacity_stack))
-        #self.colored_image_stack[channel] = self.set_image_opacity(
-        #    self.colored_image_stack[channel], self.grayscale_image_stack[channel])
         self.combine_images()
         # Update the display
 
 
     def level_change(self, r):
         if self.tiff_loaded:
-            print("ich bin ein tif")
             if int(r) < len(self.sliders):
                 r_index = r
-                print("slider name " + str(r))
-                print("slider array " + str(len(self.sliders)))
-                print(f"Slider {r} value: {self.sliders[r_index].value()}")
                 if self.on_off_buttons[r].isChecked():
                     self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
                     self.update_plot()
 
         else:
-            print("ich bin kein tif")
             r = ["red", "green", "blue"].index(r)
             if self.loaded:
                 sval = self.sliders[r].value()
