@@ -109,6 +109,7 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load image")
         filename = name[0]
+    is_tiff = False
 
     #checks if the file is a tiff
     if filename and (filename.endswith('.tif') or filename.endswith('.tiff')):
@@ -116,6 +117,8 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             filename)
         if successful_import:
             parent.grayscale_image_stack = grayscale_image_stack
+            num_layers = len(grayscale_image_stack)
+            is_tiff = True
 
             # Initialize the colors and colored_image_stack attributes
             parent.color_initialization()

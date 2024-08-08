@@ -483,6 +483,123 @@ class MainW(QMainWindow):
             # if an exception of any kind occurs, the specific exception is printed to the console
             print(f"An error occurred while changing the view: {e}")
 
+def generate_multi_channel_ui(self, num_layers, is_tiff):
+    """
+    Generates UI components for multi-channel images.
+
+    This method creates and initializes sliders, color buttons, and on/off buttons based on the number of layers
+    in the loaded multi-channel TIFF image. It also ensures that these components are displayed or hidden appropriately.
+
+    Args:
+        num_layers (int): The number of layers in the loaded multi-channel TIFF image.
+        is_tiff (bool): Flag indicating whether the image is a TIFF file.
+
+    Returns:
+        None
+    """
+    # Position of elements in the layout
+    c = 0
+
+    # Clear existing elements in the layout
+    for i in reversed(range(self.rightBoxLayout.count())):
+        widget = self.rightBoxLayout.itemAt(i).widget()
+        if widget is not None:
+            widget.setParent(None)
+
+    # Initialize lists for buttons and sliders
+    self.sliders = []
+    self.marker_buttons = []
+    self.on_off_buttons = []
+
+    # Initialize colors
+    colors = [
+        (255, 0, 0),  # Red
+        (0, 255, 0),  # Green
+        (0, 0, 255),  # Blue
+        (255, 255, 0),  # Yellow
+        (255, 0, 255),  # Magenta
+        (0, 255, 255),  # Cyan
+        (255, 165, 0)  # Orange
+    ]
+
+    if is_tiff:
+        # Multi-layer TIFF image case
+        self.marker_buttons = [self.create_color_button(colors[r % len(colors)], r) for r in range(num_layers)]
+        self.on_off_buttons = [self.create_on_off_button() for _ in range(num_layers)]
+
+        for r in range(num_layers):
+            c += 1
+
+            # Create label for each marker
+            label = QLabel(f'Marker {r + 1}')
+            label.setStyleSheet("color: white")
+            label.setFont(self.boldmedfont)
+
+            # Get the corresponding color button and on/off button
+            color_button = self.marker_buttons[r]
+            on_off_button = self.on_off_buttons[r]
+
+            # Add components to the layout
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)
+            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)
+
+            # Create and add the slider
+            slider_name = r
+            slider_color = colors[r % len(colors)]
+            slider = Slider(self, slider_name, slider_color)
+            slider.setMinimum(-.1)
+            slider.setMaximum(255.1)
+            slider.setValue([0, 255])
+            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+            slider.setFixedWidth(250)
+
+            self.sliders.append(slider)
+            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
+
+    else:
+        # Non-TIFF image case
+        colornames = ["red", "Chartreuse", "DodgerBlue"]
+        names = ["red", "green", "blue"]
+
+        for r in range(3):
+            c += 1
+
+            if r == 0:
+                label = QLabel('<font color="gray">gray/</font><br>red')
+            else:
+                label = QLabel(names[r] + ":")
+            label.setStyleSheet(f"color: {colornames[r]}")
+            label.setFont(self.boldmedfont)
+
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 2)
+
+            slider = Slider(self, names[r], colors[r])
+            slider.setMinimum(-.1)
+            slider.setMaximum(255.1)
+            slider.setValue([0, 255])
+            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+            slider.setFixedWidth(250)
+
+            self.sliders.append(slider)
+            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
+
+    # Add a stretch widget to the layout
+    stretch_widget = QWidget()
+    self.rightBoxLayout.addWidget(stretch_widget)
+
+    # Show or hide color dialog and on/off buttons based on the is_tiff flag
+    if is_tiff:
+        for button in self.marker_buttons:
+            button.show()
+        for button in self.on_off_buttons:
+            button.show()
+    else:
+        for button in self.marker_buttons:
+            button.hide()
+        for button in self.on_off_buttons:
+            button.hide()
+
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
         self.boldmedfont = QtGui.QFont("Arial", 9, QtGui.QFont.Bold)
