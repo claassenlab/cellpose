@@ -308,6 +308,7 @@ class MainW(QMainWindow):
         self.grayscale_image_stack = []
         self.colors_stack = []
         self.colored_image_stack = []
+        self.multi_page_tiff_loaded = False
 
         # if called with image, load it
         if image is not None:

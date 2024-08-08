@@ -121,6 +121,7 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             parent.color_initialization()
             parent.generate_color_image_stack()
 
+            parent.multi_page_tiff_loaded = True
             # Initialize the Buttons and sliders
             # parent.generate_multi_channel_ui()
 
