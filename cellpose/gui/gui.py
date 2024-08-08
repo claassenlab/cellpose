@@ -603,7 +603,7 @@ class MainW(QMainWindow):
         # Erstelle Buttons vor der Schleife
         self.sliders = []
         self.marker_buttons = [self.create_color_button(self.colors_tif[r % len(self.colors_tif)], r) for r in range(n)]
-        self.on_off_buttons = [self.create_on_off_button() for _ in range(n)]
+        self.on_off_buttons = [self.create_on_off_button(i) for i in range(n)]
 
         for r in range(n):
             c += 1
@@ -705,21 +705,21 @@ class MainW(QMainWindow):
         self.sliders = []
         # ---Create a list (extendable) of color/on-off buttons  ---#
         colors = ["red", "green", "blue"]
-        self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-        self.on_off_buttons = [self.create_on_off_button() for color in colors]
+        # self.marker_buttons = [self.create_color_button(color, None) for color in colors]
+        # self.on_off_buttons = [self.create_on_off_button(i) for i in range self.]
 
         for r in range(3):
             c += 1
 
             label = QLabel(f'Marker {r + 1}')  # create a label for each marker
-            color_button = self.marker_buttons[r]  # get the corresponding color button
+            # color_button = self.marker_buttons[r]  # get the corresponding color button
             self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
+            # on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
             label.setStyleSheet("color: white")
             label.setFont(self.boldmedfont)
             self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
+            # self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
+            # self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
             self.sliders.append(Slider(self, colors[r], None))
             self.sliders[-1].setMinimum(-.1)
             self.sliders[-1].setMaximum(255.1)
@@ -1204,10 +1204,13 @@ class MainW(QMainWindow):
         color_button.clicked.connect(lambda: self.open_color_dialog(index))
         return color_button
 
-    def create_on_off_button(self):
+    def create_on_off_button(self, index):
         """
         Creates a new QPushButton for toggling on and off, with an initial "off" state,
-        and connects its clicked signal to the toggle_on_off method.
+        and connects its clicked signal to the toggle_on_off method with an index.
+
+        Args:
+            index (int): The index to be assigned to the button.
 
         Returns:
             QPushButton: The created on-off button.
@@ -1215,12 +1218,11 @@ class MainW(QMainWindow):
         on_off_button = QPushButton()
         on_off_button.setCheckable(True)
         on_off_button.setChecked(True)  # Initial state is "on"
-        on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
+        on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
         on_off_button.setIconSize(QtCore.QSize(12, 12))
-        on_off_button.clicked.connect(self.toggle_on_off)
-        on_off_button.clicked.connect(self.toggle_channel_on_off)
+        on_off_button.clicked.connect(lambda: self.toggle_on_off())
+        on_off_button.clicked.connect(lambda: self.toggle_channel_on_off(index))
         return on_off_button
-
 
     def toggle_channel_on_off(self, channel):
         """
@@ -1231,10 +1233,11 @@ class MainW(QMainWindow):
             checked (bool): State of the toggle button (True if the button is checked).
         """
         # Retrieve the image corresponding to the channel
-        channel = self.senderSignalIndex()
+        channel = channel
         image = self.grayscale_image_stack[channel]
-        image2 = self.colored_image_stack[channel]
+
         button = self.sender()
+
 
 
         if button.isChecked():
@@ -1400,6 +1403,7 @@ class MainW(QMainWindow):
             f"Adjusting channel {channel} to bounds {lower_bound} - {upper_bound}"
         )
 
+
         # Adjust the alpha channel of the specified image
         self.colored_image_stack[channel] = self.adjust_contrast(
             self.colored_image_stack[channel], lower_bound, upper_bound, channel)
@@ -1407,8 +1411,6 @@ class MainW(QMainWindow):
         #self.colored_image_stack[channel] = self.set_image_opacity(
         #    self.colored_image_stack[channel], self.grayscale_image_stack[channel])
         self.combine_images()
-        # image = Image.fromarray(self.combined_image)
-        # image.show()
         # Update the display
 
 
@@ -1420,8 +1422,9 @@ class MainW(QMainWindow):
                 print("slider name " + str(r))
                 print("slider array " + str(len(self.sliders)))
                 print(f"Slider {r} value: {self.sliders[r_index].value()}")
-                self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
-                self.update_plot()
+                if self.on_off_buttons[r].isChecked():
+                    self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+                    self.update_plot()
 
         else:
             print("ich bin kein tif")
