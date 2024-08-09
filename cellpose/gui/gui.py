@@ -426,40 +426,11 @@ class MainW(QMainWindow):
             color_bg.getchannel("R"), color_bg.getchannel("G"), color_bg.getchannel("B"), alpha))
 
             self.colored_image_stack[i] = colored_image
+        print("\n")
 
         self.combine_images()
         self.update_plot()
 
-    from PIL import Image
-
-    """def combine_images(self):
-        
-        Combine a list of images by overlaying them, with a black background as the first layer.
-
-        Returns:
-            Image: The combined RGBA image.
-        
-        if not self.colored_image_stack:
-            raise ValueError("No images in the stack to combine.")
-
-        # Create a blank black image with the same size as the first image in the stack
-        black_background = Image.new("RGBA", self.colored_image_stack[0].size,
-                                     (0, 0, 0, 255))
-
-        # Start with the black background
-        base_image = black_background
-
-        for image in self.colored_image_stack:
-            # Ensure the image is in RGBA format
-            if image.mode != 'RGBA':
-                image = image.convert('RGBA')
-            # Overlay the image on the base image
-            base_image = Image.alpha_composite(base_image, image)
-
-        base_image = base_image.convert('RGB')
-        # Convert the base image to a NumPy array
-        base_image = np.array(base_image)
-        self.combined_image = np.array(base_image)"""
 
     def combine_images(self):
         """
@@ -471,17 +442,10 @@ class MainW(QMainWindow):
         if not self.colored_image_stack:
             raise ValueError("No images in the stack to combine.")
 
-        # Create a blank black image with the same size as the first image in the stack
-        black_background = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
-
         # Start with the black background
-        base_image = black_background
+        base_image = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
 
         for image in self.colored_image_stack:
-            # Ensure the image is in RGBA format
-            if image.mode != 'RGBA':
-                image = image.convert('RGBA')
-            # Overlay the image on the base image
             base_image = Image.alpha_composite(base_image, image)
 
         # Convert to RGB before conversion to array
@@ -1242,11 +1206,11 @@ class MainW(QMainWindow):
         if color_dialog.exec_():
             color = color_dialog.selectedColor()
             if color.isValid():
+                # Ensure to use only RGB values, ignoring the alpha channel
                 self.colors_stack[index] = (color.red(), color.green(), color.blue())
                 self.generate_color_image_stack()
                 self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
                 self.combine_images()
-
 
     def get_color_button_style(self, color_name):
         """
@@ -1268,33 +1232,6 @@ class MainW(QMainWindow):
                 }}
                 """
 
-    def adjust_alpha(self, image, lower_bound, upper_bound):
-        """
-        Adjust the alpha channel of the given image based on the provided bounds.
-
-        Args:
-            image (Image): The RGBA image to adjust.
-            lower_bound (int): The lower bound for the alpha channel.
-            upper_bound (int): The upper bound for the alpha channel.
-
-        Returns:
-            Image: The adjusted RGBA image.
-        """
-        # Split the image into its component channels
-        r, g, b, a = image.split()
-
-        # Convert the alpha channel to numpy array for manipulation
-        a_np = np.array(a, dtype=np.float32)
-
-        # Normalize and adjust alpha values based on bounds
-        a_np = (a_np - lower_bound) / (upper_bound - lower_bound) * 255
-        a_np = np.clip(a_np, 0, 255).astype(np.uint8)
-
-        # Create new alpha channel
-        new_alpha = Image.fromarray(a_np)
-
-        # Merge the channels back into an RGBA image
-        return Image.merge("RGBA", (r, g, b, new_alpha))
 
     def set_image_opacity(self, image, opacity):
         # Ensure the image is in RGBA mode
@@ -1305,7 +1242,8 @@ class MainW(QMainWindow):
         r, g, b, a = image.split()
 
         # Modify the alpha channel based on the opacity input
-        new_alpha = a.point(lambda p: int(p * opacity / 255))
+        # new_alpha = a.point(lambda p: int(p * opacity / 255))
+        new_alpha = a.point(lambda p: int(p * opacity))
 
         # Recombine the image with the new alpha channel
         new_image = Image.merge('RGBA', (r, g, b, new_alpha))
