@@ -13,6 +13,7 @@ from qtpy.QtGui import QIcon, QColor
 import numpy as np
 from scipy.stats import mode
 import cv2
+import imghdr
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -383,6 +384,26 @@ class MainW(QMainWindow):
                          color_bg.getchannel("B"), alpha))
             self.colored_image_stack.append(colored_image)
 
+    def convert_images_to_array(self, images):
+        """
+        Convert a list of PIL images to a numpy array.
+        This gives us a stacked four-dimensional array with that shape shape (N, H, W, C).
+        N is the number of images, H is height, W is width, C is channels (2 for LA).
+        This makes it easier to extract information about the channels later on.
+
+        Args:
+            images (list): A list of PIL images.
+
+        Returns:
+            np.ndarray: A stacked four-dimensional array of the images.
+        """
+        # Convert each image to a numpy array
+        arrays = [np.array(image) for image in images]
+
+        # Stack all image arrays along a new axis, creating a 4D array
+        stacked_array = np.stack(arrays, axis=0)
+
+        return stacked_array
 
     def minimap_closed(self):
         """
@@ -1306,6 +1327,7 @@ class MainW(QMainWindow):
         self.saveSet.setEnabled(False)
         self.savePNG.setEnabled(False)
         self.saveFlows.setEnabled(False)
+        self.saveFeaturesCsv.setEnabled(False)
         self.saveOutlines.setEnabled(False)
         self.saveROIs.setEnabled(False)
         self.minimapWindow.setEnabled(False)
@@ -1333,6 +1355,26 @@ class MainW(QMainWindow):
             self.saveFlows.setEnabled(False)
             self.saveOutlines.setEnabled(False)
             self.saveROIs.setEnabled(False)
+
+    def toggle_save_features_csv(self):
+        """
+        Toggles the save features csv button based on the image file type.
+        If the image is a tiff or tif file, the button is enabled. Otherwise, it is disabled.
+        This method is called after a segmentation has taken place.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        filetype = imghdr.what(self.filename)
+
+        if filetype in ['tiff', 'tif']:
+            self.saveFeaturesCsv.setEnabled(True)
+        else:
+            self.saveFeaturesCsv.setEnabled(False)
 
     def toggle_removals(self):
         if self.ncells > 0:
