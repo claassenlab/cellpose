@@ -536,6 +536,9 @@ class MainW(QMainWindow):
             normalized_width = width / img_width
             normalized_height = height / img_height
 
+            # Set the highlight area in the minimap window
+            self.minimap_window_instance.set_highlight_area(normalized_x[0], normalized_y[0], normalized_width, normalized_height)
+
             return normalized_x, normalized_y, normalized_width, normalized_height
 
         except Exception as e:
@@ -1542,6 +1545,7 @@ class MainW(QMainWindow):
         self.saveSet.setEnabled(False)
         self.savePNG.setEnabled(False)
         self.saveFlows.setEnabled(False)
+        self.saveFeaturesCsv.setEnabled(False)
         self.saveOutlines.setEnabled(False)
         self.saveROIs.setEnabled(False)
         self.minimapWindow.setEnabled(False)
@@ -1569,6 +1573,26 @@ class MainW(QMainWindow):
             self.saveFlows.setEnabled(False)
             self.saveOutlines.setEnabled(False)
             self.saveROIs.setEnabled(False)
+
+    def toggle_save_features_csv(self):
+        """
+        Toggles the save features csv button based on the image file type.
+        If the image is a tiff or tif file, the button is enabled. Otherwise, it is disabled.
+        This method is called after a segmentation has taken place.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        filetype = imghdr.what(self.filename)
+
+        if filetype in ['tiff', 'tif']:
+            self.saveFeaturesCsv.setEnabled(True)
+        else:
+            self.saveFeaturesCsv.setEnabled(False)
 
     def toggle_removals(self):
         if self.ncells > 0:
