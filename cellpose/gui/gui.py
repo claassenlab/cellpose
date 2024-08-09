@@ -14,7 +14,6 @@ from PIL import Image
 import numpy as np
 from scipy.stats import mode
 import cv2
-from webcolors import rgb_to_hex
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -145,6 +144,17 @@ def make_cmap(cm=0):
     cmap = pg.ColorMap(pos=np.linspace(0.0, 255, 256), color=color)
     return cmap
 
+def rgb_to_hex(rgb_tuple):
+        """
+        Converts an RGB tuple to a hex color string.
+
+        Args:
+            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
+
+        Returns:
+            str: The hex color string (e.g., '#ff0000' for red).
+        """
+        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
 
 def run(image=None):
     from ..io import logger_setup
@@ -1207,18 +1217,7 @@ class MainW(QMainWindow):
                 width: 12px;
                 }}
             """
-    
-    def rgb_to_hex(self, rgb_tuple):
-        """
-        Converts an RGB tuple to a hex color string.
 
-        Args:
-            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
-
-        Returns:
-            str: The hex color string (e.g., '#ff0000' for red).
-        """
-        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
 
     def level_change(self, r):
         r = ["red", "green", "blue"].index(r)
