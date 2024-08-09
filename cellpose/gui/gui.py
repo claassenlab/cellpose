@@ -497,6 +497,9 @@ class MainW(QMainWindow):
             normalized_width = width / img_width
             normalized_height = height / img_height
 
+            # Set the highlight area in the minimap window
+            self.minimap_window_instance.set_highlight_area(normalized_x[0], normalized_y[0], normalized_width, normalized_height)
+
             return normalized_x, normalized_y, normalized_width, normalized_height
 
         except Exception as e:
