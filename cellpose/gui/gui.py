@@ -14,7 +14,7 @@ from PIL import Image
 import numpy as np
 from scipy.stats import mode
 import cv2
-import imghdr
+
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -45,7 +45,7 @@ class Slider(QRangeSlider):
 
     def __init__(self, parent, name, color):
         super().__init__(Horizontal)
-        self.setEnabled(False)
+        self.setEnabled(True)
         self.valueChanged.connect(lambda: self.levelChanged(parent))
         self.name = name
 
@@ -146,16 +146,17 @@ def make_cmap(cm=0):
     return cmap
 
 def rgb_to_hex(rgb_tuple):
-        """
-        Converts an RGB tuple to a hex color string.
+    """
+    Converts an RGB tuple to a hex color string.
 
-        Args:
-            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
+    Args:
+        rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
 
-        Returns:
-            str: The hex color string (e.g., '#ff0000' for red).
-        """
-        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+    Returns:
+        str: The hex color string (e.g., '#ff0000' for red).
+    """
+    return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+
 
 def run(image=None):
     from ..io import logger_setup
@@ -242,6 +243,7 @@ class MainW(QMainWindow):
                            border: black solid 1px
                            }"""
         self.loaded = False
+        self.tiff_loaded = False
 
         # ---- MAIN WIDGET LAYOUT ---- #
         self.cwidget = QWidget(self)
@@ -321,6 +323,7 @@ class MainW(QMainWindow):
         self.grayscale_image_stack = []
         self.colors_stack = []
         self.colored_image_stack = []
+        self.combined_image = []
 
         # if called with image, load it
         if image is not None:
@@ -393,38 +396,88 @@ class MainW(QMainWindow):
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
 
+    def initialize_color_image_stack(self):
+            self.colored_image_stack = []
+            for i in range(len(self.grayscale_image_stack)):
+                color = self.colors_stack[i]
+
+                alpha = self.grayscale_image_stack[i].getchannel("A")
+                color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                     color)
+                colored_image = Image.merge(
+                    "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                             color_bg.getchannel("B"), alpha))
+                self.colored_image_stack.append(colored_image)
+                # colored_image.show()
+
     def generate_color_image_stack(self):
-        for i in range(len(self.grayscale_image_stack)):
-            color = self.colors_stack[i]
-
-            alpha = self.grayscale_image_stack[i].getchannel("A")
-            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
-                                 color)
-            colored_image = Image.merge(
-                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
-                         color_bg.getchannel("B"), alpha))
-            self.colored_image_stack.append(colored_image)
-
-    def convert_images_to_array(self, images):
         """
-        Convert a list of PIL images to a numpy array.
-        This gives us a stacked four-dimensional array with that shape shape (N, H, W, C).
-        N is the number of images, H is height, W is width, C is channels (2 for LA).
-        This makes it easier to extract information about the channels later on.
+        Generate a color image stack by overlaying the grayscale images with the corresponding colors from the colors stack.
 
-        Args:
-            images (list): A list of PIL images.
+        This function iterates over the grayscale image stack and the colors stack simultaneously. For each pair of grayscale image and color, it creates a new RGBA image by overlaying the grayscale image with the color. The alpha channel of the grayscale image is used as the transparency level for the overlay. The resulting colored image is then assigned to the corresponding position in the colored image stack.
+
+        Parameters:
+            None
 
         Returns:
-            np.ndarray: A stacked four-dimensional array of the images.
+            None
         """
-        # Convert each image to a numpy array
-        arrays = [np.array(image) for image in images]
+        for i in range(len(self.colored_image_stack)):
+            grayscale_image = self.grayscale_image_stack[i]
 
-        # Stack all image arrays along a new axis, creating a 4D array
-        stacked_array = np.stack(arrays, axis=0)
+            # Check if the grayscale image has an alpha channel
+            if grayscale_image.mode != "RGBA":
+                # If not, add an alpha channel
+                grayscale_image = grayscale_image.convert("RGBA")
 
-        return stacked_array
+            alpha = grayscale_image.getchannel("A")
+
+            # Create a new RGB image with the background color
+            color_bg = Image.new("RGB", grayscale_image.size, self.colors_stack[i])
+            print(f"Image {i} - Color: {self.colors_stack[i]}")
+
+            # Combine the color background with the alpha channel
+            colored_image = Image.merge("RGBA", (
+                color_bg.getchannel("R"), color_bg.getchannel("G"), color_bg.getchannel("B"), alpha))
+
+            self.colored_image_stack[i] = colored_image
+
+        self.combine_images()
+        self.update_plot()
+
+    def combine_images(self):
+        """
+        Combine a list of images by overlaying them, with a black background as the first layer.
+
+        Returns:
+            np.array: The combined image as a NumPy array in RGB format.
+        """
+        if not self.colored_image_stack:
+            raise ValueError("No images in the stack to combine.")
+
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
+
+        # Start with the black background
+        base_image = black_background
+
+        for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
+            base_image = Image.alpha_composite(base_image, image)
+
+        # Convert to RGB before conversion to array
+        base_image_rgb = base_image.convert('RGB')
+
+        # Convert the PIL Image to a NumPy array and ensure type is uint8
+        base_array = np.array(base_image_rgb)
+        # Ensure the data is of type uint8, containing values from 0 to 255
+        base_array = np.clip(base_array, 0, 255).astype(np.uint8)
+
+        self.combined_image = base_array
+        return self.combined_image
 
     def minimap_closed(self):
         """
@@ -1109,7 +1162,7 @@ class MainW(QMainWindow):
                 self.create_color_button(rgb_to_hex(color))
                 for color in self.colors_stack[:num_layers]
                 ]
-            self.on_off_buttons = [self.create_on_off_button() for _ in range(num_layers)]
+            self.on_off_buttons = [self.create_on_off_button(i) for i in range(num_layers)]
 
             for r in range(num_layers):
                 c += 1
@@ -1174,7 +1227,7 @@ class MainW(QMainWindow):
         print(f"Created button with color: {hex_color}") 
         return color_button
 
-    def create_on_off_button(self):
+    def create_on_off_button(self, index):
         """
         Creates a new QPushButton for toggling on and off, with an initial "on" state,
         and connects its clicked signal to the toggle_on_off method.
@@ -1188,6 +1241,7 @@ class MainW(QMainWindow):
         on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
         on_off_button.setIconSize(QtCore.QSize(12, 12))
         on_off_button.clicked.connect(self.toggle_on_off)
+        on_off_button.clicked.connect(lambda: self.toggle_channel_on_off(index))
         return on_off_button
 
     def toggle_on_off(self):
@@ -1200,6 +1254,35 @@ class MainW(QMainWindow):
             button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
         else:
             button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
+
+    def toggle_channel_on_off(self, channel):
+        """
+        Toggle the alpha channel of the layer corresponding to the given index based on the button state.
+
+        Args:
+            channel (int): The index of the layer to toggle.
+
+        """
+        # Retrieve the image corresponding to the channel
+        channel = channel
+        image = self.grayscale_image_stack[channel]
+
+        button = self.sender()
+
+        if button.isChecked():
+
+            # Retrieve the original alpha channel
+            alpha = image.getchannel("A")
+        else:
+            # Create a full-opacity alpha channel
+            alpha = Image.new('L', image.size, 0)  # 'L' mode for single channel
+
+        # Update the image with the new alpha channel
+        self.colored_image_stack[channel].putalpha(alpha)
+        self.combine_images()
+        self.update_plot()
+
+
 
     def open_color_dialog(self):
         """
@@ -1241,18 +1324,74 @@ class MainW(QMainWindow):
                 width: 12px;
                 }}
             """
+    
+    def rgb_to_hex(self, rgb_tuple):
+        """
+        Converts an RGB tuple to a hex color string.
 
+        Args:
+            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
+
+        Returns:
+            str: The hex color string (e.g., '#ff0000' for red).
+        """
+        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
+
+    def adjust_contrast(self, image, lower_bound, upper_bound, channel):
+        # Retrieve the alpha channel from the specified channel in the grayscale image stack
+        alpha = self.grayscale_image_stack[channel].getchannel("A")
+
+        # Convert the alpha channel to a NumPy array for manipulation
+        alpha_np = np.array(alpha, dtype=np.float32)
+
+        # Apply the contrast adjustment to the alpha channel
+        adjusted_alpha_np = np.clip(
+            (alpha_np - lower_bound) / (upper_bound - lower_bound) * 255, 0, 255)
+
+        # Convert the adjusted alpha channel back to an image
+        adjusted_alpha = Image.fromarray(adjusted_alpha_np.astype(np.uint8))
+
+        # Create a new image by copying the original and replacing the alpha channel
+        new_image = image.copy()
+        new_image.putalpha(adjusted_alpha)
+
+        return new_image
+
+    def adjust_channel_bounds(self, channel, bounds):
+        """
+        Adjust the alpha channel of the specified channel based on the slider values.
+
+        Args:
+            channel (int): The index of the channel to adjust.
+            bounds (tuple): A tuple of (lower_bound, upper_bound) for the alpha adjustment.
+        """
+        lower_bound, upper_bound = bounds
+
+        # Adjust the alpha channel of the specified image
+        self.colored_image_stack[channel] = self.adjust_contrast(
+            self.colored_image_stack[channel], lower_bound, upper_bound, channel)
+        self.combine_images()
+        # Update the display
 
     def level_change(self, r):
-        r = ["red", "green", "blue"].index(r)
-        if self.loaded:
-            sval = self.sliders[r].value()
-            self.saturation[r][self.currentZ] = sval
-            if not self.autobtn.isChecked():
-                for r in range(3):
-                    for i in range(len(self.saturation[r])):
-                        self.saturation[r][i] = self.saturation[r][self.currentZ]
-            self.update_plot()
+        if self.tiff_loaded:                  # if tiff is loaded, sliders adjust contrast of each layer
+            if int(r) < len(self.sliders):    # make sure the list of sliders already filled
+                r_index = r
+                if self.on_off_buttons[r].isChecked():
+                    self.adjust_channel_bounds(r_index, self.sliders[r_index].value())  # adjust contrast of layer
+                    self.update_plot()  # update plot
+
+        else:
+            r = ["red", "green", "blue"].index(r)
+            if self.loaded:
+                sval = self.sliders[r].value()
+                self.saturation[r][self.currentZ] = sval
+                if not self.autobtn.isChecked():
+                    for r in range(3):
+                        for i in range(len(self.saturation[r])):
+                            self.saturation[r][i] = self.saturation[r][
+                                self.currentZ]
+                self.update_plot()
 
     def keyPressEvent(self, event):
         if self.loaded:
@@ -2016,8 +2155,10 @@ class MainW(QMainWindow):
         self.update_plot()
 
     def update_plot(self):
+        self.combine_images()
         self.view = self.ViewDropDown.currentIndex()
-        self.Ly, self.Lx, _ = self.stack[self.currentZ].shape
+        self.Ly, self.Lx, _ = self.combined_image.shape
+
 
         if self.restore and "upsample" in self.restore:
             if self.view != 0:
@@ -2034,8 +2175,7 @@ class MainW(QMainWindow):
             self.update_layer()
 
         if self.view == 0 or self.view == self.ViewDropDown.count() - 1:
-            image = self.stack[
-                self.currentZ] if self.view == 0 else self.stack_filtered[self.currentZ]
+            image = self.combined_image if self.view == 0 else self.stack_filtered[self.currentZ]
             if self.nchan == 1:
                 # show single channel
                 image = image[..., 0]
@@ -2078,10 +2218,11 @@ class MainW(QMainWindow):
                 self.img.setImage(image, autoLevels=False, lut=None)
             self.img.setLevels([0.0, 255.0])
 
-        for r in range(3):
-            self.sliders[r].setValue([
-                self.saturation[r][self.currentZ][0],
-                self.saturation[r][self.currentZ][1]
+        if not self.tiff_loaded:
+            for r in range(3):
+                self.sliders[r].setValue([
+                    self.saturation[r][self.currentZ][0],
+                    self.saturation[r][self.currentZ][1]
             ])
 
         # If the channels are updated, the minimap is updated as well
