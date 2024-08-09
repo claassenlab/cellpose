@@ -81,12 +81,13 @@ def mainmenu(parent):
     This adds a new menu item for saving features as a .csv file. 
     The user can activate this function to export specific data directly from the GUI.
     The function `_save_features_as_csv` from the `io` module is called when the user clicks on the menu item.
+    It is disabled by default and only activated if an image is segmented and of the type tif/tiff.
     """
     parent.saveFeaturesCsv = QAction("Save Features as .&csv", parent)
     parent.saveFeaturesCsv.setShortcut("Ctrl+Shift+C")
     parent.saveFeaturesCsv.triggered.connect(lambda: io._save_features_csv(parent))
     file_menu.addAction(parent.saveFeaturesCsv)
-    parent.saveFeaturesCsv.setEnabled(True)
+    parent.saveFeaturesCsv.setEnabled(False)
 
     """
     This creates a new menu item for the minimap that the user can activate.
