@@ -14,6 +14,7 @@ from PIL import Image
 import numpy as np
 from scipy.stats import mode
 import cv2
+from webcolors import rgb_to_hex
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -1059,23 +1060,12 @@ class MainW(QMainWindow):
         self.marker_buttons = []
         self.on_off_buttons = []
 
-        # Initialize colors
-        colors = [
-            (255, 0, 0),  # Red
-            (0, 255, 0),  # Green
-            (0, 0, 255),  # Blue
-            (255, 255, 0),  # Yellow
-            (255, 0, 255),  # Magenta
-            (0, 255, 255),  # Cyan
-            (255, 165, 0)  # Orange
-        ]
-
         if is_tiff:
-            for r in range(num_layers):
-                color = colors[r % len(colors)]
-                color_button = self.create_color_button(color)
-                self.marker_buttons.append(color_button)
-                self.on_off_buttons.append(self.create_on_off_button())
+            self.marker_buttons = [
+                self.create_color_button(rgb_to_hex(color))
+                for color in self.colors_stack[:num_layers]
+                ]
+            self.on_off_buttons = [self.create_on_off_button() for _ in range(num_layers)]
 
             for r in range(num_layers):
                 c += 1
@@ -1096,7 +1086,7 @@ class MainW(QMainWindow):
 
                 # Create and add the slider
                 slider_name = r
-                slider_color = colors[r % len(colors)]
+                slider_color = rgb_to_hex(self.colors_stack[r])
                 slider = Slider(self, slider_name, slider_color)
                 slider.setMinimum(-.1)
                 slider.setMaximum(255.1)
@@ -1124,20 +1114,20 @@ class MainW(QMainWindow):
             for button in self.on_off_buttons:
                 button.hide()
 
-    def create_color_button(self, color):
+    def create_color_button(self, hex_color):
         """
-            Creates and initializes all the buttons and UI elements used in the GUI.
-            This includes buttons for changing views, drawing, segmentation, model
-            selection, and image restoration. Also initializes color buttons with
-            specific colors (red, green, blue) and on-off buttons.
+        Creates a color button with the specified color.
 
-            Returns:
-                int: The number of buttons and UI elements created.
-            """
+        Args:
+            color (tuple): RGB color tuple.
+
+        Returns:
+            QPushButton: The created color button.
+        """
         color_button = QPushButton()
-        color_button.setStyleSheet(self.get_color_button_style(color))
+        color_button.setStyleSheet(self.get_color_button_style(hex_color))
         color_button.clicked.connect(self.open_color_dialog)
-        print(f"Created button with color: rgb({color[0]}, {color[1]}, {color[2]})") 
+        print(f"Created button with color: {hex_color}") 
         return color_button
 
     def create_on_off_button(self):
@@ -1187,7 +1177,7 @@ class MainW(QMainWindow):
             if color.isValid():
                 self.sender().setStyleSheet(self.get_color_button_style(color.name()))
 
-    def get_color_button_style(self, color_name):
+    def get_color_button_style(self, hex_color):
         """
         Returns a string with the CSS style for a QPushButton with the specified background color, a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
 
@@ -1199,33 +1189,36 @@ class MainW(QMainWindow):
         """
         return f"""
             QPushButton {{
-                background-color: {color_name};
+                background-color: {hex_color};
                 border-style: solid;
                 border-width: 1px;
                 height: 12px;
                 width: 12px;
                 }}
             """
+    
+    def rgb_to_hex(self, rgb_tuple):
+        """
+        Converts an RGB tuple to a hex color string.
+
+        Args:
+            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
+
+        Returns:
+            str: The hex color string (e.g., '#ff0000' for red).
+        """
+        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
 
     def level_change(self, r):
-        if self.tiff_loaded:
-            if int(r) < len(self.sliders):
-                r_index = r
-                print("slider name " + str(r))
-                print("slider array " + str(len(self.sliders)))
-                print(f"Slider {r} value: {self.sliders[r_index].value()}")
-                self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
-                self.update_plot()
-        else:
-            r = ["red", "green", "blue"].index(r)
-            if self.loaded:
-                sval = self.sliders[r].value()
-                self.saturation[r][self.currentZ] = sval
-                if not self.autobtn.isChecked():
-                    for r in range(3):
-                        for i in range(len(self.saturation[r])):
-                            self.saturation[r][i] = self.saturation[r][self.currentZ]
-                self.update_plot()
+        r = ["red", "green", "blue"].index(r)
+        if self.loaded:
+            sval = self.sliders[r].value()
+            self.saturation[r][self.currentZ] = sval
+            if not self.autobtn.isChecked():
+                for r in range(3):
+                    for i in range(len(self.saturation[r])):
+                        self.saturation[r][i] = self.saturation[r][self.currentZ]
+            self.update_plot()
 
     def keyPressEvent(self, event):
         if self.loaded:
