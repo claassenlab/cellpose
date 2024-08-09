@@ -54,8 +54,6 @@ class Slider(QRangeSlider):
         """)
         self.show()
 
-
-
     def levelChanged(self, parent):
         parent.level_change(self.name)
 
@@ -147,6 +145,15 @@ def make_cmap(cm=0):
     return cmap
 
 def rgb_to_hex(rgb_tuple):
+    """
+    Converts an RGB tuple to a hex color string.
+
+    Args:
+        rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
+
+    Returns:
+        str: The hex color string (e.g., '#ff0000' for red).
+    """
     return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
 
 
@@ -308,6 +315,9 @@ class MainW(QMainWindow):
         self.reset()
         self.minimap_window_instance = None
 
+        # if the view of the image is changed, the method onViewChanged is called
+        self.p0.sigRangeChanged.connect(self.onViewChanged)
+
         # Custom multi-page tiff image stack
         self.grayscale_image_stack = []
         self.colors_stack = []
@@ -363,8 +373,6 @@ class MainW(QMainWindow):
             if self.minimap_window_instance is not None:
                 self.minimap_window_instance.deleteLater()
                 self.minimap_window_instance = None
-
-
 
     def color_initialization(self):
         """
@@ -514,6 +522,55 @@ class MainW(QMainWindow):
         self.p0.setXRange(*new_x_range, padding=0)
         self.p0.setYRange(*new_y_range, padding=0)
 
+    def onViewChanged(self):
+        """
+        This function is called whenever the view of the image in the view box is changed.
+        This includes it being zoomed in or zoomed out, as well as it being moved around.
+        It normalizes coordinates and dimensions of the view box in relation to the current image.
+
+        Returns:
+            Normalized coordinates of the view box (normalized_x, normalized_y)
+            Normalized dimensions of the view box (normalized_width, normalized_height)
+        """
+
+        # Access the positional values of the view box p0 in form of a rectangle using viewRect()
+        view_rect = self.p0.viewRect()
+
+        # Extract the x and y coordinates of the view box
+        x_coordinates = [view_rect.left(), view_rect.right()]
+        y_coordinates = [view_rect.top(), view_rect.bottom()]
+
+        # Extract the dimensions of the view box
+        width = view_rect.width()
+        height = view_rect.height()
+
+        try:
+
+            # Get the size of the image
+            img_height = self.img.image.shape[0]
+            img_width = self.img.image.shape[1]
+
+            # Calculate the normalized coordinates in relation to the image size
+            normalized_x = tuple(
+                coordinate / img_width for coordinate in x_coordinates)
+            normalized_y = tuple(
+                coordinate / img_height for coordinate in y_coordinates)
+
+            # Calculate the normalized dimensions
+            normalized_width = width / img_width
+            normalized_height = height / img_height
+
+            # Set the highlight area in the minimap window
+            self.minimap_window_instance.set_highlight_area(normalized_x[0], normalized_y[0], normalized_width, normalized_height)
+
+            return normalized_x, normalized_y, normalized_width, normalized_height
+
+        except Exception as e:
+
+            # if an exception of any kind occurs, the specific exception is printed to the console
+            print(f"An error occurred while changing the view: {e}")
+
+
 
     def generate_multi_channel_ui(self, n):
         c = 0  # Position der Elemente im Layout
@@ -617,25 +674,32 @@ class MainW(QMainWindow):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-
+        #--- Initialization of Non-Tiff cases ---#
         c = 0  # position of the elements in the right side menu
 
+        # Define color names and labels for non-TIFF images
+        colornames = ["red", "Chartreuse", "DodgerBlue"]
+        names = ["red", "green", "blue"]
+        colors = ["red", "green", "blue"]
+
+        # Initialize sliders list
         self.sliders = []
         # ---Create a list (extendable) of color/on-off buttons  ---#
-        colors = ["red", "green", "blue"]
         # self.marker_buttons = [self.create_color_button(color, None) for color in colors]
         # self.on_off_buttons = [self.create_on_off_button(i) for i in range self.]
 
+        # Add labels and sliders for non-TIFF images
         for r in range(3):
             c += 1
 
-            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
-            # color_button = self.marker_buttons[r]  # get the corresponding color button
-            self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-            # on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
-            label.setStyleSheet("color: white")
-            label.setFont(self.boldmedfont)
+            # Create a label for each color channel
+            if r == 0:
+                label = QLabel('<font color="gray">gray/</font><br>red')
+            else:
+                label = QLabel(names[r] + ":")
+            label.setStyleSheet(f"color: {colornames[r]}")
             self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+
             # self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
             # self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
             self.sliders.append(Slider(self, colors[r], None))
@@ -1230,7 +1294,7 @@ class MainW(QMainWindow):
                 height: 12px;
                 width: 12px;
                 }}
-                """
+            """
 
 
     def set_image_opacity(self, image, opacity):
@@ -1298,12 +1362,12 @@ class MainW(QMainWindow):
 
 
     def level_change(self, r):
-        if self.tiff_loaded:
-            if int(r) < len(self.sliders):
+        if self.tiff_loaded:                  # if tiff is loaded, sliders adjust contrast of each layer
+            if int(r) < len(self.sliders):    # make sure the list of sliders already filled
                 r_index = r
                 if self.on_off_buttons[r].isChecked():
-                    self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
-                    self.update_plot()
+                    self.adjust_channel_bounds(r_index, self.sliders[r_index].value())  # adjust contrast of layer
+                    self.update_plot()  # update plot
 
         else:
             r = ["red", "green", "blue"].index(r)
@@ -1504,6 +1568,7 @@ class MainW(QMainWindow):
         self.saveSet.setEnabled(False)
         self.savePNG.setEnabled(False)
         self.saveFlows.setEnabled(False)
+        self.saveFeaturesCsv.setEnabled(False)
         self.saveOutlines.setEnabled(False)
         self.saveROIs.setEnabled(False)
         self.minimapWindow.setEnabled(False)
@@ -1531,6 +1596,26 @@ class MainW(QMainWindow):
             self.saveFlows.setEnabled(False)
             self.saveOutlines.setEnabled(False)
             self.saveROIs.setEnabled(False)
+
+    def toggle_save_features_csv(self):
+        """
+        Toggles the save features csv button based on the image file type.
+        If the image is a tiff or tif file, the button is enabled. Otherwise, it is disabled.
+        This method is called after a segmentation has taken place.
+
+        Args:
+            None
+
+        Returns:
+            None
+        """
+
+        filetype = imghdr.what(self.filename)
+
+        if filetype in ['tiff', 'tif']:
+            self.saveFeaturesCsv.setEnabled(True)
+        else:
+            self.saveFeaturesCsv.setEnabled(False)
 
     def toggle_removals(self):
         if self.ncells > 0:

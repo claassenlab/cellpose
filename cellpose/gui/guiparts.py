@@ -451,6 +451,20 @@ class MinimapWindow(QDialog):
         # This marks the menu button as checked
         parent.minimapWindow.setChecked(True)
 
+        # Create and add a highlight rectangle to the minimap with initial position [0, 0] and size [100, 100], outlined
+        # in white with a 3-pixel width.
+        self.highlight_area = pg.RectROI([0, 0], [100, 100], pen=pg.mkPen('w', width=3), resizable=False, movable=False)
+        self.highlight_area.hoverEvent = lambda event: None
+        # Remove all resize handles after initialization
+        QtCore.QTimer.singleShot(0, lambda: [self.highlight_area.removeHandle(handle) for handle in
+                                             self.highlight_area.getHandles()])
+
+
+        # Set the highlight area to cover the entire image by default
+        self.set_highlight_area(0, 0, 1, 1)
+        # Add the highlight area to the viewbox
+        self.viewbox.addItem(self.highlight_area)
+
     def closeEvent(self, event: QEvent):
         """
         Method to uncheck the button in the menu if the window is closed.
@@ -500,6 +514,45 @@ class MinimapWindow(QDialog):
         # If there is no image and the minimap is checked, an empty window is opened
         else:
             self.setFixedSize(self.minimapSize, self.minimapSize)
+
+    def set_highlight_area(self, normalized_x, normalized_y, normalized_width, normalized_height):
+        """
+        Method to set the highlight area on the minimap.
+        The position and size of the rectangle are set based on the calculated normalized coordinates from the
+        onViewChanged method.
+
+        Parameters:
+        normalized_x (float): Normalized x-coordinate for the position.
+        normalized_y (float): Normalized y-coordinate for the position.
+        normalized_width (float): Normalized width for the size.
+        normalized_height (float): Normalized height for the size.
+
+        Returns:
+        tuple: The calculated (x, y, width, height) coordinates.
+        """
+
+        if self.parent().img.image is not None:
+            # Retrieve the height and width of the image
+            img_height = self.parent().img.image.shape[0]
+            img_width = self.parent().img.image.shape[1]
+
+            # Calculate the position and size of the highlight area based on the normalized coordinates
+            x = normalized_x * img_width
+            y = normalized_y * img_height
+            width = normalized_width * img_width
+            height = normalized_height * img_height
+
+            # Set the position of the rectangle  area on the minimap
+            # Move the rectangle to the calculated position
+            self.highlight_area.setPos(x, y)
+
+            # Set the size of the rectangle on the minimap
+            # Adjust the rectangle's size to the calculated width and height
+            self.highlight_area.setSize([width, height])
+
+        else:
+            print("Error: No image loaded in parent.")
+
 
     def sliderValueChanged(self, value):
         """

@@ -175,6 +175,8 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             parent.minimap_window_instance = guiparts.MinimapWindow(parent)
             parent.minimap_window_instance.show()
 
+        parent.saveFeaturesCsv.setEnabled(False)
+
 
 def _initialize_images(parent, image, load_3D=False):
     """ format image for GUI """
@@ -503,6 +505,8 @@ def _load_masks(parent, filename=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        # features can only be saved if masks are loaded
+        parent.toggle_save_features_csv()
     del masks
     gc.collect()
     parent.update_layer()
@@ -582,6 +586,8 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
     if parent.ncells > 0:
         parent.draw_layer()
         parent.toggle_mask_ops()
+        # features can only be saved if masks are loaded
+        parent.toggle_save_features_csv()
     parent.ismanual = np.zeros(parent.ncells, bool)
     parent.zdraw = list(-1 * np.ones(parent.ncells, np.int16))
 
@@ -590,6 +596,7 @@ def _masks_to_gui(parent, masks, outlines=None, colors=None):
         print("set denoised/filtered view")
     else:
         parent.ViewDropDown.setCurrentIndex(0)
+
 
 def _save_features_csv(parent):
     """
@@ -605,11 +612,18 @@ def _save_features_csv(parent):
         return
 
     filename = parent.filename
+
     base = os.path.splitext(filename)[0] + "_features.csv"
+
     # check if the dataset is 2D (NZ == 1 implies a single z-layer)
     if parent.NZ == 1:
         print("GUI_INFO: saving features to CSV file")
-        save_features_csv(parent.filename)
+        # this gives us the channels that are currently loaded by converting the images to an array
+        stacked_images = parent.convert_images_to_array(parent.grayscale_image_stack)
+        # reduction to only the relevant light intensity channel
+        channels = stacked_images[:, :, :, 1]
+        # save the features to a CSV file using method in cellpose.io
+        save_features_csv(parent.filename, parent.cellpix, channels)
     else:
         print("ERROR: cannot save features")
 
