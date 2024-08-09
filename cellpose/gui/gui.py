@@ -396,19 +396,54 @@ class MainW(QMainWindow):
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
 
-    def generate_color_image_stack(self):
-        for i in range(len(self.grayscale_image_stack)):
-            color = self.colors_stack[i]
+    def initialize_color_image_stack(self):
+            self.colored_image_stack = []
+            for i in range(len(self.grayscale_image_stack)):
+                color = self.colors_stack[i]
 
-            alpha = self.grayscale_image_stack[i].getchannel("A")
-            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
-                                 color)
-            colored_image = Image.merge(
-                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
-                         color_bg.getchannel("B"), alpha))
-            self.colored_image_stack.append(colored_image)
+                alpha = self.grayscale_image_stack[i].getchannel("A")
+                color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                     color)
+                colored_image = Image.merge(
+                    "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                             color_bg.getchannel("B"), alpha))
+                self.colored_image_stack.append(colored_image)
+                # colored_image.show()
+
+    def generate_color_image_stack(self):
+        """
+        Generate a color image stack by overlaying the grayscale images with the corresponding colors from the colors stack.
+
+        This function iterates over the grayscale image stack and the colors stack simultaneously. For each pair of grayscale image and color, it creates a new RGBA image by overlaying the grayscale image with the color. The alpha channel of the grayscale image is used as the transparency level for the overlay. The resulting colored image is then assigned to the corresponding position in the colored image stack.
+
+        Parameters:
+            None
+
+        Returns:
+            None
+        """
+        for i in range(len(self.colored_image_stack)):
+            grayscale_image = self.grayscale_image_stack[i]
+
+            # Check if the grayscale image has an alpha channel
+            if grayscale_image.mode != "RGBA":
+                # If not, add an alpha channel
+                grayscale_image = grayscale_image.convert("RGBA")
+
+            alpha = grayscale_image.getchannel("A")
+
+            # Create a new RGB image with the background color
+            color_bg = Image.new("RGB", grayscale_image.size, self.colors_stack[i])
+            print(f"Image {i} - Color: {self.colors_stack[i]}")
+
+            # Combine the color background with the alpha channel
+            colored_image = Image.merge("RGBA", (
+                color_bg.getchannel("R"), color_bg.getchannel("G"), color_bg.getchannel("B"), alpha))
+
+            self.colored_image_stack[i] = colored_image
 
         self.combine_images()
+        self.update_plot()
 
     def combine_images(self):
         """
