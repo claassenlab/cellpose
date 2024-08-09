@@ -361,6 +361,15 @@ class MainW(QMainWindow):
                 self.minimap_window_instance = None
 
     def color_initialization(self):
+        """
+        Initializes the color stack for multi-channel images.
+
+        This method assigns initial colors to each layer in the grayscale image stack.
+        It uses a predefined list of colors and cycles through them if there are more layers
+        than colors available.
+        
+        The colors are assigned in a cyclic manner to ensure that each layer has a color.
+        """
         colors = [
             (255, 0, 0),  # Red
             (0, 255, 0),  # Green
@@ -1061,6 +1070,7 @@ class MainW(QMainWindow):
         self.on_off_buttons = []
 
         if is_tiff:
+            # Create color buttons and on/off buttons for each layer
             self.marker_buttons = [
                 self.create_color_button(rgb_to_hex(color))
                 for color in self.colors_stack[:num_layers]
@@ -1119,7 +1129,7 @@ class MainW(QMainWindow):
         Creates a color button with the specified color.
 
         Args:
-            color (tuple): RGB color tuple.
+            hex_color (str): Hex color string.
 
         Returns:
             QPushButton: The created color button.
@@ -1179,10 +1189,11 @@ class MainW(QMainWindow):
 
     def get_color_button_style(self, hex_color):
         """
-        Returns a string with the CSS style for a QPushButton with the specified background color, a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
+        Returns a string with the CSS style for a QPushButton with the specified background color, 
+        a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
 
         Args:
-            color_name (str): The name of the color to use for the button's background.
+            hex_color (str): The hex color string to use for the button's background.
 
         Returns:
             str: The CSS style for the button.
