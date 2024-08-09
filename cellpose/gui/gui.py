@@ -9,6 +9,7 @@ from superqt import QRangeSlider, QCollapsible
 from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
 import pyqtgraph as pg
 from qtpy.QtGui import QIcon, QColor
+from PIL import Image
 
 import numpy as np
 from scipy.stats import mode
@@ -483,122 +484,7 @@ class MainW(QMainWindow):
             # if an exception of any kind occurs, the specific exception is printed to the console
             print(f"An error occurred while changing the view: {e}")
 
-def generate_multi_channel_ui(self, num_layers, is_tiff):
-    """
-    Generates UI components for multi-channel images.
-
-    This method creates and initializes sliders, color buttons, and on/off buttons based on the number of layers
-    in the loaded multi-channel TIFF image. It also ensures that these components are displayed or hidden appropriately.
-
-    Args:
-        num_layers (int): The number of layers in the loaded multi-channel TIFF image.
-        is_tiff (bool): Flag indicating whether the image is a TIFF file.
-
-    Returns:
-        None
-    """
-    # Position of elements in the layout
-    c = 0
-
-    # Clear existing elements in the layout
-    for i in reversed(range(self.rightBoxLayout.count())):
-        widget = self.rightBoxLayout.itemAt(i).widget()
-        if widget is not None:
-            widget.setParent(None)
-
-    # Initialize lists for buttons and sliders
-    self.sliders = []
-    self.marker_buttons = []
-    self.on_off_buttons = []
-
-    # Initialize colors
-    colors = [
-        (255, 0, 0),  # Red
-        (0, 255, 0),  # Green
-        (0, 0, 255),  # Blue
-        (255, 255, 0),  # Yellow
-        (255, 0, 255),  # Magenta
-        (0, 255, 255),  # Cyan
-        (255, 165, 0)  # Orange
-    ]
-
-    if is_tiff:
-        # Multi-layer TIFF image case
-        self.marker_buttons = [self.create_color_button(colors[r % len(colors)], r) for r in range(num_layers)]
-        self.on_off_buttons = [self.create_on_off_button() for _ in range(num_layers)]
-
-        for r in range(num_layers):
-            c += 1
-
-            # Create label for each marker
-            label = QLabel(f'Marker {r + 1}')
-            label.setStyleSheet("color: white")
-            label.setFont(self.boldmedfont)
-
-            # Get the corresponding color button and on/off button
-            color_button = self.marker_buttons[r]
-            on_off_button = self.on_off_buttons[r]
-
-            # Add components to the layout
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)
-
-            # Create and add the slider
-            slider_name = r
-            slider_color = colors[r % len(colors)]
-            slider = Slider(self, slider_name, slider_color)
-            slider.setMinimum(-.1)
-            slider.setMaximum(255.1)
-            slider.setValue([0, 255])
-            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
-            slider.setFixedWidth(250)
-
-            self.sliders.append(slider)
-            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
-
-    else:
-        # Non-TIFF image case
-        colornames = ["red", "Chartreuse", "DodgerBlue"]
-        names = ["red", "green", "blue"]
-
-        for r in range(3):
-            c += 1
-
-            if r == 0:
-                label = QLabel('<font color="gray">gray/</font><br>red')
-            else:
-                label = QLabel(names[r] + ":")
-            label.setStyleSheet(f"color: {colornames[r]}")
-            label.setFont(self.boldmedfont)
-
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 2)
-
-            slider = Slider(self, names[r], colors[r])
-            slider.setMinimum(-.1)
-            slider.setMaximum(255.1)
-            slider.setValue([0, 255])
-            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
-            slider.setFixedWidth(250)
-
-            self.sliders.append(slider)
-            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
-
-    # Add a stretch widget to the layout
-    stretch_widget = QWidget()
-    self.rightBoxLayout.addWidget(stretch_widget)
-
-    # Show or hide color dialog and on/off buttons based on the is_tiff flag
-    if is_tiff:
-        for button in self.marker_buttons:
-            button.show()
-        for button in self.on_off_buttons:
-            button.show()
-    else:
-        for button in self.marker_buttons:
-            button.hide()
-        for button in self.on_off_buttons:
-            button.hide()
+    
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -655,41 +541,45 @@ def generate_multi_channel_ui(self, num_layers, is_tiff):
         self.autobtn.setChecked(True)
         self.satBoxG.addWidget(self.autobtn, b0, 1, 1, 8)
 
-    
+        #--- Initialization of Non-Tiff cases ---#
         c = 0  # position of the elements in the right side menu
 
-        self.sliders = []
-        # ---Create a list (extendable) of color/on-off buttons  ---#
+        # Define color names and labels for non-TIFF images
+        colornames = ["red", "Chartreuse", "DodgerBlue"]
+        names = ["red", "green", "blue"]
         colors = ["red", "green", "blue"]
-        self.marker_buttons = [self.create_color_button(color) for color in colors]
-        self.on_off_buttons = [self.create_on_off_button() for color in colors]
 
+        # Initialize sliders list
+        self.sliders = []
+
+        # Add labels and sliders for non-TIFF images
         for r in range(3):
             c += 1
 
-            label = QLabel(f'Marker {r + 1}')  # create a label for each marker
-            color_button = self.marker_buttons[r]  # get the corresponding color button
-            self.marker_buttons = [self.create_color_button(color) for color in colors]
-            on_off_button = self.on_off_buttons[r]  # get the corresponding on-off button
-            label.setStyleSheet("color: white")
+            # Create a label for each color channel
+            if r == 0:
+                label = QLabel('<font color="gray">gray/</font><br>red')
+            else:
+                label = QLabel(names[r] + ":")
+            label.setStyleSheet(f"color: {colornames[r]}")
             label.setFont(self.boldmedfont)
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
-            self.sliders.append(Slider(self, colors[r], None))
-            self.sliders[-1].setMinimum(-.1)
-            self.sliders[-1].setMaximum(255.1)
-            self.sliders[-1].setValue([0, 255])
-            self.sliders[-1].setToolTip(
-                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
-            )
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 2)
 
-            self.sliders[-1].setFixedWidth(250)
-            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
-            stretch_widget = QWidget()
-            self.rightBoxLayout.addWidget(stretch_widget)
+            # Create and configure the slider
+            slider = Slider(self, colors[r], None)
+            slider.setMinimum(-.1)
+            slider.setMaximum(255.1)
+            slider.setValue([0, 255])
+            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+            slider.setFixedWidth(250)
 
+            # Add the slider to the layout
+            self.sliders.append(slider)
+            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
 
+        # Add a stretch widget to the layout
+        stretch_widget = QWidget()
+        self.rightBoxLayout.addWidget(stretch_widget)
         b += 1
         self.drawBox = QGroupBox("Drawing")
         self.drawBox.setFont(self.boldfont)
@@ -1143,6 +1033,97 @@ def generate_multi_channel_ui(self, num_layers, is_tiff):
 
         return b
 
+
+    def generate_multi_channel_ui(self, num_layers, is_tiff):
+        """
+        Generates UI components for multi-channel images.
+
+        This method creates and initializes sliders, color buttons, and on/off buttons based on the number of layers
+        in the loaded multi-channel TIFF image. It also ensures that these components are displayed or hidden appropriately.
+
+        Args:
+            num_layers (int): The number of layers in the loaded multi-channel TIFF image.
+            is_tiff (bool): Flag indicating whether the image is a TIFF file.
+        """
+        # Position of elements in the layout
+        c = 0
+        
+        # Clear existing elements in the layout
+        for i in reversed(range(self.rightBoxLayout.count())):
+            widget = self.rightBoxLayout.itemAt(i).widget()
+            if widget is not None:
+                widget.setParent(None)
+
+        # Initialize lists for buttons and sliders
+        self.sliders = []
+        self.marker_buttons = []
+        self.on_off_buttons = []
+
+        # Initialize colors
+        colors = [
+            (255, 0, 0),  # Red
+            (0, 255, 0),  # Green
+            (0, 0, 255),  # Blue
+            (255, 255, 0),  # Yellow
+            (255, 0, 255),  # Magenta
+            (0, 255, 255),  # Cyan
+            (255, 165, 0)  # Orange
+        ]
+
+        if is_tiff:
+            for r in range(num_layers):
+                color = colors[r % len(colors)]
+                color_button = self.create_color_button(color)
+                self.marker_buttons.append(color_button)
+                self.on_off_buttons.append(self.create_on_off_button())
+
+            for r in range(num_layers):
+                c += 1
+
+                # Create label for each marker
+                label = QLabel(f'Marker {r + 1}')
+                label.setStyleSheet("color: white")
+                label.setFont(self.boldmedfont)
+
+                # Get the corresponding color button and on/off button
+                color_button = self.marker_buttons[r]
+                on_off_button = self.on_off_buttons[r]
+
+                # Add components to the layout
+                self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+                self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)
+                self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)
+
+                # Create and add the slider
+                slider_name = r
+                slider_color = colors[r % len(colors)]
+                slider = Slider(self, slider_name, slider_color)
+                slider.setMinimum(-.1)
+                slider.setMaximum(255.1)
+                slider.setValue([0, 255])
+                slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+                slider.setFixedWidth(250)
+
+                self.sliders.append(slider)
+                self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
+
+
+        # Add a stretch widget to the layout
+        stretch_widget = QWidget()
+        self.rightBoxLayout.addWidget(stretch_widget)
+
+        # Show or hide color dialog and on/off buttons based on the is_tiff flag
+        if is_tiff and num_layers > 3:
+            for button in self.marker_buttons:
+                button.show()
+            for button in self.on_off_buttons:
+                button.show()
+        else:
+            for button in self.marker_buttons:
+                button.hide()
+            for button in self.on_off_buttons:
+                button.hide()
+
     def create_color_button(self, color):
         """
             Creates and initializes all the buttons and UI elements used in the GUI.
@@ -1156,11 +1137,12 @@ def generate_multi_channel_ui(self, num_layers, is_tiff):
         color_button = QPushButton()
         color_button.setStyleSheet(self.get_color_button_style(color))
         color_button.clicked.connect(self.open_color_dialog)
+        print(f"Created button with color: rgb({color[0]}, {color[1]}, {color[2]})") 
         return color_button
 
     def create_on_off_button(self):
         """
-        Creates a new QPushButton for toggling on and off, with an initial "off" state,
+        Creates a new QPushButton for toggling on and off, with an initial "on" state,
         and connects its clicked signal to the toggle_on_off method.
 
         Returns:
@@ -1168,8 +1150,8 @@ def generate_multi_channel_ui(self, num_layers, is_tiff):
         """
         on_off_button = QPushButton()
         on_off_button.setCheckable(True)
-        on_off_button.setChecked(False)
-        on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
+        on_off_button.setChecked(True) # Initial state is "on"
+        on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
         on_off_button.setIconSize(QtCore.QSize(12, 12))
         on_off_button.clicked.connect(self.toggle_on_off)
         return on_off_button
@@ -1226,15 +1208,24 @@ def generate_multi_channel_ui(self, num_layers, is_tiff):
             """
 
     def level_change(self, r):
-        r = ["red", "green", "blue"].index(r)
-        if self.loaded:
-            sval = self.sliders[r].value()
-            self.saturation[r][self.currentZ] = sval
-            if not self.autobtn.isChecked():
-                for r in range(3):
-                    for i in range(len(self.saturation[r])):
-                        self.saturation[r][i] = self.saturation[r][self.currentZ]
-            self.update_plot()
+        if self.tiff_loaded:
+            if int(r) < len(self.sliders):
+                r_index = r
+                print("slider name " + str(r))
+                print("slider array " + str(len(self.sliders)))
+                print(f"Slider {r} value: {self.sliders[r_index].value()}")
+                self.adjust_channel_bounds(r_index, self.sliders[r_index].value())
+                self.update_plot()
+        else:
+            r = ["red", "green", "blue"].index(r)
+            if self.loaded:
+                sval = self.sliders[r].value()
+                self.saturation[r][self.currentZ] = sval
+                if not self.autobtn.isChecked():
+                    for r in range(3):
+                        for i in range(len(self.saturation[r])):
+                            self.saturation[r][i] = self.saturation[r][self.currentZ]
+                self.update_plot()
 
     def keyPressEvent(self, event):
         if self.loaded:
