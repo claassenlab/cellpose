@@ -126,6 +126,7 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
             # Initialize the Buttons and sliders for multi-layer TIFF
             num_layers = len(grayscale_image_stack)
             is_tiff = True
+            parent.tiff_loaded = True
             parent.generate_multi_channel_ui(num_layers, is_tiff)
             print(f"GUI_INFO: Tiff loaded with {len(grayscale_image_stack)} layers")
 
