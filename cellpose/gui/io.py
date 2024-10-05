@@ -4,12 +4,13 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import os, datetime, gc, warnings, glob, shutil, copy
 from natsort import natsorted
+from PIL import Image
 import numpy as np
 import cv2
 import tifffile
 import logging
 import fastremap
-from PIL import Image, ImageSequence, ImageOps
+from PIL import Image
 
 from ..io import imread, imsave, outlines_to_text, add_model, remove_model, save_rois, save_settings, save_features_csv
 from ..models import normalize_default, MODEL_DIR, MODEL_LIST_PATH, get_user_models
@@ -109,25 +110,25 @@ def _load_image(parent, filename=None, load_seg=True, load_3D=False):
     if filename is None:
         name = QFileDialog.getOpenFileName(parent, "Load image")
         filename = name[0]
+        print("keine tiff")
 
     #checks if the file is a tiff
     if filename and (filename.endswith('.tif') or filename.endswith('.tiff')):
         successful_import, grayscale_image_stack = initialize_tiff_images(
             filename)
+        print(successful_import)
         if successful_import:
             parent.grayscale_image_stack = grayscale_image_stack
-
-            for i in range(len(parent.grayscale_image_stack)):
-                if i < len(parent.opacity_stack):
-                    parent.opacity_stack[i] = 255
 
             # Initialize the colors and colored_image_stack attributes
             parent.color_initialization()
             parent.initialize_color_image_stack()
 
+            # Initialize the Buttons and sliders for multi-layer TIFF
+            num_layers = len(grayscale_image_stack)
             parent.tiff_loaded = True
-            parent.generate_multi_channel_ui(len(parent.colored_image_stack))
-
+            parent.generate_multi_channel_ui(num_layers, True)
+            print(f"GUI_INFO: Tiff loaded with {len(grayscale_image_stack)} layers")
 
     manual_file = os.path.splitext(filename)[0] + "_seg.npy"
     load_mask = False
@@ -801,4 +802,5 @@ def initialize_tiff_images(tiff_file_path):
             return ret, processed_images
         return ret, []
     except Exception as e:
+        print(e)
         return False, []

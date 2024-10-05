@@ -4,16 +4,17 @@ Copyright © 2023 Howard Hughes Medical Institute, Authored by Carsen Stringer a
 
 import sys, os, pathlib, warnings, datetime, time, copy
 
-from PIL import Image
 from qtpy import QtGui, QtCore
 from superqt import QRangeSlider, QCollapsible
 from qtpy.QtWidgets import QScrollArea, QMainWindow, QApplication, QWidget, QScrollBar, QComboBox, QGridLayout, QPushButton, QFrame, QCheckBox, QLabel, QProgressBar, QLineEdit, QMessageBox, QGroupBox, QColorDialog
 import pyqtgraph as pg
 from qtpy.QtGui import QIcon, QColor
+from PIL import Image
 
 import numpy as np
 from scipy.stats import mode
 import cv2
+
 
 from . import guiparts, menus, io
 from .. import models, core, dynamics, version, denoise, train
@@ -323,7 +324,6 @@ class MainW(QMainWindow):
         self.colors_stack = []
         self.colored_image_stack = []
         self.combined_image = []
-        self.opacity_stack = [255 for _ in range(len(self.grayscale_image_stack))]
 
         # if called with image, load it
         if image is not None:
@@ -376,32 +376,39 @@ class MainW(QMainWindow):
 
     def color_initialization(self):
         """
-        Initializes the color stack by assigning every layer a standard color by repeating colors in the list.
+        Initializes the color stack for multi-channel images.
+
+        This method assigns initial colors to each layer in the grayscale image stack.
+        It uses a predefined list of colors and cycles through them if there are more layers
+        than colors available.
+        
+        The colors are assigned in a cyclic manner to ensure that each layer has a color.
         """
-        colors = [(255, 0, 0),  # Red
-                      (0, 255, 0),  # Green
-                      (0, 0, 255),  # Blue
-                      (255, 255, 0),  # Yellow
-                      (255, 0, 255),  # Magenta
-                      (0, 255, 255),  # Cyan
-                      (255, 165, 0)]
-        self.colors_stack = []  # Ensure colors_stack is empty before initialization
+        colors = [
+            (255, 0, 0),  # Red
+            (0, 255, 0),  # Green
+            (0, 0, 255),  # Blue
+            (255, 255, 0),  # Yellow
+            (255, 0, 255),  # Magenta
+            (0, 255, 255),  # Cyan
+            (255, 165, 0)  # Orange
+        ]
         for i in range(len(self.grayscale_image_stack)):
             self.colors_stack.append(colors[i % len(colors)])
 
     def initialize_color_image_stack(self):
-        self.colored_image_stack = []
-        for i in range(len(self.grayscale_image_stack)):
-            color = self.colors_stack[i]
+            self.colored_image_stack = []
+            for i in range(len(self.grayscale_image_stack)):
+                color = self.colors_stack[i]
 
-            alpha = self.grayscale_image_stack[i].getchannel("A")
-            color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
-                                 color)
-            colored_image = Image.merge(
-                "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
-                         color_bg.getchannel("B"), alpha))
-            self.colored_image_stack.append(colored_image)
-            # colored_image.show()
+                alpha = self.grayscale_image_stack[i].getchannel("A")
+                color_bg = Image.new("RGB", self.grayscale_image_stack[i].size,
+                                     color)
+                colored_image = Image.merge(
+                    "RGBA", (color_bg.getchannel("R"), color_bg.getchannel("G"),
+                             color_bg.getchannel("B"), alpha))
+                self.colored_image_stack.append(colored_image)
+                # colored_image.show()
 
     def generate_color_image_stack(self):
         """
@@ -431,14 +438,12 @@ class MainW(QMainWindow):
 
             # Combine the color background with the alpha channel
             colored_image = Image.merge("RGBA", (
-            color_bg.getchannel("R"), color_bg.getchannel("G"), color_bg.getchannel("B"), alpha))
+                color_bg.getchannel("R"), color_bg.getchannel("G"), color_bg.getchannel("B"), alpha))
 
             self.colored_image_stack[i] = colored_image
-        print("\n")
 
         self.combine_images()
         self.update_plot()
-
 
     def combine_images(self):
         """
@@ -450,10 +455,17 @@ class MainW(QMainWindow):
         if not self.colored_image_stack:
             raise ValueError("No images in the stack to combine.")
 
+        # Create a blank black image with the same size as the first image in the stack
+        black_background = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
+
         # Start with the black background
-        base_image = Image.new("RGBA", self.colored_image_stack[0].size, (0, 0, 0, 255))
+        base_image = black_background
 
         for image in self.colored_image_stack:
+            # Ensure the image is in RGBA format
+            if image.mode != 'RGBA':
+                image = image.convert('RGBA')
+            # Overlay the image on the base image
             base_image = Image.alpha_composite(base_image, image)
 
         # Convert to RGB before conversion to array
@@ -466,7 +478,6 @@ class MainW(QMainWindow):
 
         self.combined_image = base_array
         return self.combined_image
-
 
     def minimap_closed(self):
         """
@@ -570,54 +581,7 @@ class MainW(QMainWindow):
             # if an exception of any kind occurs, the specific exception is printed to the console
             print(f"An error occurred while changing the view: {e}")
 
-
-
-    def generate_multi_channel_ui(self, n):
-        c = 0  # Position der Elemente im Layout
-
-        # Erstelle Buttons vor der Schleife
-        self.sliders = []
-        self.marker_buttons = [self.create_color_button(rgb_to_hex(self.colors_stack[r]), r) for r in range(n)]
-        self.on_off_buttons = [self.create_on_off_button(i) for i in range(n)]
-
-        for r in range(n):
-            c += 1
-
-            # Erstelle Label für jeden Marker
-            label = QLabel(f'Marker {r + 1}')
-
-            color_button = self.marker_buttons[r]  # Hol den entsprechenden Farb-Button
-            on_off_button = self.on_off_buttons[r]  # Hol den entsprechenden On/Off-Button
-
-
-            label.setStyleSheet("color: white")
-            label.setFont(self.boldmedfont)
-
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
-            self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # Füge den Farb-Button zum Layout hinzu
-            self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # Füge den On/Off-Button zum Layout hinzu
-
-            # Erstelle und füge den Slider hinzu
-            slider_name = r
-            slider_color = rgb_to_hex(self.colors_stack[r])
-
-            self.sliders.append(Slider(self, slider_name,slider_color))
-            self.sliders[-1].setMinimum(-.1)
-            self.sliders[-1].setMaximum(255.1)
-            self.sliders[-1].setValue([0, 255])
-            self.sliders[-1].setToolTip(
-                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
-            )
-
-            self.sliders[-1].setFixedWidth(250)
-            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
-            stretch_widget = QWidget()
-            self.rightBoxLayout.addWidget(stretch_widget)
-
-
-
-
-
+    
 
     def make_buttons(self):
         self.boldfont = QtGui.QFont("Arial", 11, QtGui.QFont.Bold)
@@ -684,9 +648,6 @@ class MainW(QMainWindow):
 
         # Initialize sliders list
         self.sliders = []
-        # ---Create a list (extendable) of color/on-off buttons  ---#
-        # self.marker_buttons = [self.create_color_button(color, None) for color in colors]
-        # self.on_off_buttons = [self.create_on_off_button(i) for i in range self.]
 
         # Add labels and sliders for non-TIFF images
         for r in range(3):
@@ -698,24 +659,24 @@ class MainW(QMainWindow):
             else:
                 label = QLabel(names[r] + ":")
             label.setStyleSheet(f"color: {colornames[r]}")
-            self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+            label.setFont(self.boldmedfont)
+            self.rightBoxLayout.addWidget(label, c, 0, 1, 2)
 
-            # self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)  # add the color button to the layout
-            # self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)  # add the on-off button to the layout
-            self.sliders.append(Slider(self, colors[r], None))
-            self.sliders[-1].setMinimum(-.1)
-            self.sliders[-1].setMaximum(255.1)
-            self.sliders[-1].setValue([0, 255])
-            self.sliders[-1].setToolTip(
-                "NOTE: manually changing the saturation bars does not affect normalization in segmentation"
-            )
+            # Create and configure the slider
+            slider = Slider(self, colors[r], None)
+            slider.setMinimum(-.1)
+            slider.setMaximum(255.1)
+            slider.setValue([0, 255])
+            slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+            slider.setFixedWidth(250)
 
-            self.sliders[-1].setFixedWidth(250)
-            self.rightBoxLayout.addWidget(self.sliders[-1], c, 2, 1, 7)
-            stretch_widget = QWidget()
-            self.rightBoxLayout.addWidget(stretch_widget)
+            # Add the slider to the layout
+            self.sliders.append(slider)
+            self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
 
-
+        # Add a stretch widget to the layout
+        stretch_widget = QWidget()
+        self.rightBoxLayout.addWidget(stretch_widget)
         b += 1
         self.drawBox = QGroupBox("Drawing")
         self.drawBox.setFont(self.boldfont)
@@ -1169,42 +1130,130 @@ class MainW(QMainWindow):
 
         return b
 
-    def create_color_button(self, color, index):
+
+    def generate_multi_channel_ui(self, num_layers, is_tiff):
         """
-        Creates a QPushButton with a specific color and connects its clicked signal
-        to open_color_dialog method with the index as a parameter.
+        Generates UI components for multi-channel images.
+
+        This method creates and initializes sliders, color buttons, and on/off buttons based on the number of layers
+        in the loaded multi-channel TIFF image. It also ensures that these components are displayed or hidden appropriately.
 
         Args:
-            color (str): The initial color of the button.
-            index (int): The index of the button in the stack.
+            num_layers (int): The number of layers in the loaded multi-channel TIFF image.
+            is_tiff (bool): Flag indicating whether the image is a TIFF file.
+        """
+        # Position of elements in the layout
+        c = 0
+        
+        # Clear existing elements in the layout
+        for i in reversed(range(self.rightBoxLayout.count())):
+            widget = self.rightBoxLayout.itemAt(i).widget()
+            if widget is not None:
+                widget.setParent(None)
+
+        # Initialize lists for buttons and sliders
+        self.sliders = []
+        self.marker_buttons = []
+        self.on_off_buttons = []
+
+        if is_tiff:
+            # Create color buttons and on/off buttons for each layer
+            self.marker_buttons = [
+                self.create_color_button(rgb_to_hex(color))
+                for color in self.colors_stack[:num_layers]
+                ]
+            self.on_off_buttons = [self.create_on_off_button(i) for i in range(num_layers)]
+
+            for r in range(num_layers):
+                c += 1
+
+                # Create label for each marker
+                label = QLabel(f'Marker {r + 1}')
+                label.setStyleSheet("color: white")
+                label.setFont(self.boldmedfont)
+
+                # Get the corresponding color button and on/off button
+                color_button = self.marker_buttons[r]
+                on_off_button = self.on_off_buttons[r]
+
+                # Add components to the layout
+                self.rightBoxLayout.addWidget(label, c, 0, 1, 1)
+                self.rightBoxLayout.addWidget(color_button, c, 9, 1, 1)
+                self.rightBoxLayout.addWidget(on_off_button, c, 10, 1, 1)
+
+                # Create and add the slider
+                slider_name = r
+                slider_color = rgb_to_hex(self.colors_stack[r])
+                slider = Slider(self, slider_name, slider_color)
+                slider.setMinimum(-.1)
+                slider.setMaximum(255.1)
+                slider.setValue([0, 255])
+                slider.setToolTip("NOTE: manually changing the saturation bars does not affect normalization in segmentation")
+                slider.setFixedWidth(250)
+
+                self.sliders.append(slider)
+                self.rightBoxLayout.addWidget(slider, c, 2, 1, 7)
+
+
+        # Add a stretch widget to the layout
+        stretch_widget = QWidget()
+        self.rightBoxLayout.addWidget(stretch_widget)
+
+        # Show or hide color dialog and on/off buttons based on the is_tiff flag
+        if is_tiff and num_layers > 3:
+            for button in self.marker_buttons:
+                button.show()
+            for button in self.on_off_buttons:
+                button.show()
+        else:
+            for button in self.marker_buttons:
+                button.hide()
+            for button in self.on_off_buttons:
+                button.hide()
+
+    def create_color_button(self, hex_color):
+        """
+        Creates a color button with the specified color.
+
+        Args:
+            hex_color (str): Hex color string.
 
         Returns:
             QPushButton: The created color button.
         """
         color_button = QPushButton()
-        color_button.setStyleSheet(self.get_color_button_style(color))
-        color_button.clicked.connect(lambda: self.open_color_dialog(index))
+        color_button.setStyleSheet(self.get_color_button_style(hex_color))
+        color_button.clicked.connect(self.open_color_dialog)
+        print(f"Created button with color: {hex_color}") 
         return color_button
 
     def create_on_off_button(self, index):
         """
-        Creates a new QPushButton for toggling on and off, with an initial "off" state,
-        and connects its clicked signal to the toggle_on_off method with an index.
-
-        Args:
-            index (int): The index to be assigned to the button.
+        Creates a new QPushButton for toggling on and off, with an initial "on" state,
+        and connects its clicked signal to the toggle_on_off method.
 
         Returns:
             QPushButton: The created on-off button.
         """
         on_off_button = QPushButton()
         on_off_button.setCheckable(True)
-        on_off_button.setChecked(True)  # Initial state is "on"
+        on_off_button.setChecked(True) # Initial state is "on"
         on_off_button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
         on_off_button.setIconSize(QtCore.QSize(12, 12))
-        on_off_button.clicked.connect(lambda: self.toggle_on_off())
+        on_off_button.clicked.connect(self.toggle_on_off)
         on_off_button.clicked.connect(lambda: self.toggle_channel_on_off(index))
         return on_off_button
+
+    def toggle_on_off(self):
+        """
+        Slot method that toggles the appearance of the on-off button when clicked.
+        Changes the icon to indicate the current state.
+        """
+        button = self.sender()
+        if button.isChecked():
+            button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
+        else:
+            button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
 
     def toggle_channel_on_off(self, channel):
         """
@@ -1212,15 +1261,13 @@ class MainW(QMainWindow):
 
         Args:
             channel (int): The index of the layer to toggle.
-            checked (bool): State of the toggle button (True if the button is checked).
+
         """
         # Retrieve the image corresponding to the channel
         channel = channel
         image = self.grayscale_image_stack[channel]
 
         button = self.sender()
-
-
 
         if button.isChecked():
 
@@ -1236,90 +1283,59 @@ class MainW(QMainWindow):
         self.update_plot()
 
 
-        # Update the UI or notify other components that the image has changed
 
-
-    def toggle_on_off(self):
+    def open_color_dialog(self):
         """
-        Slot method that toggles the appearance of the on-off button when clicked.
-        Changes the icon to indicate the current state.
-        """
-        button = self.sender()
-        if button.isChecked():
-            button.setIcon(QIcon("cellpose/resources/icon/visibility_on.png"))  # Icon for "on" state
-        else:
-            button.setIcon(QIcon("cellpose/resources/icon/visibility_off.png"))  # Icon for "off" state
-
-    def open_color_dialog(self, index):
-        """
-        Opens a QColorDialog and updates the background color of the button
+        Opens a QColorDialog and updates the background color of the button 
         that was clicked (the sender of the signal) if a valid color is selected.
-        Also updates the color in the colors_stack at the given index.
-
-        Args:
-            index (int): The index of the button in the stack.
         """
         # Get the current color of the sender button
-        current_color = self.colors_stack[index]
+        current_color = self.sender().palette().button().color()
 
         # Create a QColorDialog instance
         color_dialog = QColorDialog()
-        color_dialog.setCurrentColor(QtGui.QColor(*current_color))
+
+        # Set the current color of the dialog
+        color_dialog.setCurrentColor(current_color)
 
         # Execute the dialog and check if a valid color is selected
         if color_dialog.exec_():
             color = color_dialog.selectedColor()
             if color.isValid():
-                # Ensure to use only RGB values, ignoring the alpha channel
-                self.colors_stack[index] = (color.red(), color.green(), color.blue())
-                self.generate_color_image_stack()
-                self.marker_buttons[index].setStyleSheet(self.get_color_button_style(color.name()))
-                self.combine_images()
+                self.sender().setStyleSheet(self.get_color_button_style(color.name()))
 
-    def get_color_button_style(self, color_name):
+    def get_color_button_style(self, hex_color):
         """
-        Returns a string with the CSS style for a QPushButton with the specified background color, a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
+        Returns a string with the CSS style for a QPushButton with the specified background color, 
+        a solid border, a border width of 1 pixel, and a size of 12x12 pixels.
 
         Args:
-            color_name (str): The name of the color to use for the button's background.
+            hex_color (str): The hex color string to use for the button's background.
 
         Returns:
             str: The CSS style for the button.
         """
         return f"""
             QPushButton {{
-                background-color: {color_name};
+                background-color: {hex_color};
                 border-style: solid;
                 border-width: 1px;
                 height: 12px;
                 width: 12px;
                 }}
             """
+    
+    def rgb_to_hex(self, rgb_tuple):
+        """
+        Converts an RGB tuple to a hex color string.
 
+        Args:
+            rgb_tuple (tuple): The RGB tuple (e.g., (255, 0, 0) for red).
 
-    def set_image_opacity(self, image, opacity):
-        # Ensure the image is in RGBA mode
-        if image.mode != 'RGBA':
-            image = image.convert('RGBA')
-
-        # Split the image into its R, G, B, and A components
-        r, g, b, a = image.split()
-
-        # Modify the alpha channel based on the opacity input
-        # new_alpha = a.point(lambda p: int(p * opacity / 255))
-        new_alpha = a.point(lambda p: int(p * opacity))
-
-        # Recombine the image with the new alpha channel
-        new_image = Image.merge('RGBA', (r, g, b, new_alpha))
-
-        return new_image
-
-    """def adjust_contrast(self, image, lower_bound, upper_bound, channel):
-        image_np = np.array(image, dtype=np.float32)
-        clipped_np = np.clip(
-            (image_np - lower_bound) / (upper_bound - lower_bound) * 255, 0,
-            255)
-        return Image.fromarray(clipped_np.astype(np.uint8))"""
+        Returns:
+            str: The hex color string (e.g., '#ff0000' for red).
+        """
+        return '#{:02x}{:02x}{:02x}'.format(rgb_tuple[0], rgb_tuple[1], rgb_tuple[2])
 
     def adjust_contrast(self, image, lower_bound, upper_bound, channel):
         # Retrieve the alpha channel from the specified channel in the grayscale image stack
@@ -1341,8 +1357,6 @@ class MainW(QMainWindow):
 
         return new_image
 
-
-
     def adjust_channel_bounds(self, channel, bounds):
         """
         Adjust the alpha channel of the specified channel based on the slider values.
@@ -1353,13 +1367,11 @@ class MainW(QMainWindow):
         """
         lower_bound, upper_bound = bounds
 
-
         # Adjust the alpha channel of the specified image
         self.colored_image_stack[channel] = self.adjust_contrast(
             self.colored_image_stack[channel], lower_bound, upper_bound, channel)
         self.combine_images()
         # Update the display
-
 
     def level_change(self, r):
         if self.tiff_loaded:                  # if tiff is loaded, sliders adjust contrast of each layer
